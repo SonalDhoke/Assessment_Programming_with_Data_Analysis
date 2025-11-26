@@ -116,29 +116,29 @@ page_clean = page.split(" ", 1)[1]
 # ----------------------------------------------------------
 
 if page_clean == "Overview":
-    import pages.Overview as pg
+    import app_pages.Overview as pg
     pg.show()
 
 elif page_clean == "Dataset Information":
-    import pages.Dataset_Information as pg
+    import app_pages.Dataset_Information as pg
     pg.show()
 
 elif page_clean == "Data Cleaning":
-    import pages.Data_Cleaning as pg
+    import app_pages.Data_Cleaning as pg
     pg.show()
 
 elif page_clean == "Exploratory Data Analysis":
-    import pages.Exploratory_Data_Analysis as pg
+    import app_pages.Exploratory_Data_Analysis as pg
     pg.show()
 
 elif page_clean == "Data Modeling and Predictions":
-    import pages.Data_Modeling_and_Predictions as pg
+    import app_pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
 elif page_clean == "CPCB AQI Calculator":
-    import pages.CPCB_AQI_Calculator as pg
+    import app_pages.CPCB_AQI_Calculator as pg
     pg.show()
 
 elif page_clean == "References":
-    import pages.References as pg
+    import app_pages.References as pg
     pg.show()
