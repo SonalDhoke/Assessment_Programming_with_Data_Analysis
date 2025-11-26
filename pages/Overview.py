@@ -129,6 +129,7 @@ def show():
     }
 
     df_pollutants = pd.DataFrame(pollutant_data)
+    df_pollutants.index = df_pollutants.index + 1
     st.dataframe(df_pollutants, use_container_width=True)
 
     # ---------------------------
