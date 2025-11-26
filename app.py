@@ -80,6 +80,10 @@ st.markdown("""
         background-color: #FFF0F5 !important;
         border-color: #FFC4D6 !important;
     }
+    div[role="radiogroup"] > label:nth-child(7):hover {
+        background-color: #dadfe0 !important;
+        border-color: #FFC4D6 !important;
+    }
 
     </style>
 """, unsafe_allow_html=True)
@@ -92,6 +96,7 @@ st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsaf
 
 tabs = [
     "🏠 Overview",
+    "ℹ️ Dataset Information",
     "🧹 Data Cleaning",
     "📊 Exploratory Data Analysis",
     "🤖 Data Modeling and Predictions",
