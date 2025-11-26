@@ -6,7 +6,7 @@ def show():
     # ----------------------------
     # Load Dataset (Internal)
     # ----------------------------
-    df = pd.read_excel("pages/AQI_combined_data.csv")   # <-- Update name if needed
+    df = pd.read_csv("pages/AQI_combined_data.csv")   # <-- Update name if needed
     total_rows = df.shape[0]
 
     # ----------------------------
