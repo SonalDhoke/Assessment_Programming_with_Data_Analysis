@@ -9,60 +9,64 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + HIGHLIGHTED SIDEBAR (SINGLE NAV)
+# PASTEL THEME FOR RADIO BUTTONS
 # ----------------------------------------------------------
 st.markdown("""
     <style>
 
-    /* Soft pastel background for sidebar */
+    /* Sidebar background */
     [data-testid="stSidebar"] {
         background-color: #F4F6FA;
+    }
+
+    /* Remove the round radio buttons */
+    div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+    }
+
+    /* Style radio labels as pastel menu items */
+    div[role="radiogroup"] > label {
+        background-color: #ffffff;
+        border: 1px solid #E2E6ED;
+        padding: 12px 16px;
+        margin: 6px 0;
+        border-radius: 10px;
+        width: 100%;
+        transition: 0.2s ease;
+        cursor: pointer;
+        color: #344767;
+        font-size: 17px;
+    }
+
+    /* Hover effect */
+    div[role="radiogroup"] > label:hover {
+        background-color: #E8F0FE;
+        border-color: #A7C4FF;
+    }
+
+    /* Selected item */
+    div[aria-checked="true"] {
+        background-color: #A7C4FF !important;
+        border-color: #7CA4FF !important;
+        color: black !important;
+        font-weight: 600 !important;
     }
 
     .sidebar-title {
         font-size: 26px;
         font-weight: 700;
-        padding-bottom: 12px;
         color: #4A4A4A;
-    }
-
-    /* Hide built-in radio labels so only custom menu shows */
-    div[role="radiogroup"] label {
-        display: none !important;
-    }
-
-    /* Menu item style */
-    .menu-item {
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        font-size: 17px;
-        background-color: #ffffff;
-        border: 1px solid #E2E6ED;
-        color: #344767;
-        transition: 0.2s ease;
-    }
-
-    /* Hover effect */
-    .menu-item:hover {
-        background-color: #E8F0FE;
-        border-color: #A7C4FF;
-    }
-
-    /* Selected menu item (pastel highlight) */
-    .menu-active {
-        background-color: #A7C4FF !important;
-        color: black !important;
-        font-weight: 600;
-        border: 1px solid #7CA4FF !important;
+        padding-bottom: 12px;
     }
 
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR NAVIGATION (FULLY INTERACTIVE)
 # ----------------------------------------------------------
+
+st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
     "Overview",
@@ -73,21 +77,11 @@ tabs = [
     "References"
 ]
 
-# Underlying radio system (hidden visually)
+# This radio is now clickable AND beautifully styled
 page = st.sidebar.radio("Menu", tabs, index=0)
 
-# Title
-st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
-
-# Custom visual menu
-for tab in tabs:
-    if tab == page:
-        st.sidebar.markdown(f"<div class='menu-item menu-active'>{tab}</div>", unsafe_allow_html=True)
-    else:
-        st.sidebar.markdown(f"<div class='menu-item'>{tab}</div>", unsafe_allow_html=True)
-
 # ----------------------------------------------------------
-# ROUTING
+# ROUTING TO OTHER PY FILES
 # ----------------------------------------------------------
 
 if page == "Overview":
