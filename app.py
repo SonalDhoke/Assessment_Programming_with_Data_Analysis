@@ -9,104 +9,135 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# CUSTOM SIDEBAR UI (HIGHLIGHTED TABS)
+# PASTEL THEME + UNIQUE HOVER COLORS + ICONS
 # ----------------------------------------------------------
 st.markdown("""
     <style>
-        /* Sidebar background */
-        [data-testid="stSidebar"] {
-            background-color: #f7f7f7;
-        }
 
-        /* Title styling */
-        .sidebar-title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #333;
-            padding-bottom: 10px;
-        }
+    [data-testid="stSidebar"] {
+        background-color: #F4F6FA;
+    }
 
-        /* Sidebar tab container */
-        .sidebar-item {
-            padding: 10px 16px;
-            margin: 6px 0;
-            border-radius: 8px;
-            font-size: 16px;
-            color: #333;
-            border: 1px solid transparent;
-            transition: 0.2s ease-in-out;
-        }
+    .sidebar-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #4A4A4A;
+        padding-bottom: 12px;
+    }
 
-        /* Hover effect */
-        .sidebar-item:hover {
-            background-color: #e6f2ff;
-            border-color: #99ccff;
-        }
+    /* Hide radio circle icons */
+    div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+    }
 
-        /* Active tab */
-        .sidebar-active {
-            background-color: #3399ff !important;
-            color: white !important;
-            border: 1px solid #0073e6 !important;
-            font-weight: 600;
-        }
+    /* Base tab style */
+    div[role="radiogroup"] > label {
+        background-color: #ffffff;
+        border: 1px solid #E2E6ED;
+        padding: 12px 16px;
+        margin: 6px 0;
+        border-radius: 10px;
+        width: 100%;
+        cursor: pointer;
+        color: #344767;
+        font-size: 17px;
+        transition: 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        /* Hide default radio buttons */
-        div[role=radiogroup] > label > div:first-child {
-            display: none !important;
-        }
+    /* Active tab */
+    div[aria-checked="true"] {
+        background-color: #A7C4FF !important;
+        border-color: #7CA4FF !important;
+        color: black !important;
+        font-weight: 600 !important;
+    }
+
+    /* Hover pastel colors for each tab */
+    div[role="radiogroup"] > label:nth-child(1):hover {
+        background-color: #FFE8E8 !important;
+        border-color: #FFCCCC !important;
+    }
+    div[role="radiogroup"] > label:nth-child(2):hover {
+        background-color: #FFF4D6 !important;
+        border-color: #FFE4A1 !important;
+    }
+    div[role="radiogroup"] > label:nth-child(3):hover {
+        background-color: #E8FFF3 !important;
+        border-color: #B9F5D0 !important;
+    }
+    div[role="radiogroup"] > label:nth-child(4):hover {
+        background-color: #E9F2FF !important;
+        border-color: #A7C4FF !important;
+    }
+    div[role="radiogroup"] > label:nth-child(5):hover {
+        background-color: #F5E8FF !important;
+        border-color: #D6B6FF !important;
+    }
+    div[role="radiogroup"] > label:nth-child(6):hover {
+        background-color: #FFF0F5 !important;
+        border-color: #FFC4D6 !important;
+    }
+    div[role="radiogroup"] > label:nth-child(7):hover {
+        background-color: #dadfe0 !important;
+        border-color: #b7bdbe !important;
+    }
+
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR NAVIGATION WITH ICONS
 # ----------------------------------------------------------
 
-st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
-    "Overview",
-    "Data Cleaning",
-    "Exploratory Data Analysis",
-    "Data Modeling and Predictions",
-    "CPCB AQI Calculator",
-    "References"
+    "🏠 Overview",
+    "ℹ️ Dataset Information",
+    "🧹 Data Cleaning",
+    "📊 Exploratory Data Analysis",
+    "🤖 Data Modeling and Predictions",
+    "🧮 CPCB AQI Calculator",
+    "📚 References"
 ]
 
-# Radio button selection
-page = st.sidebar.radio("Select page:", tabs)
+# Radio menu
+page = st.sidebar.radio("", tabs, index=0)
 
-# Highlighted items
-for tab in tabs:
-    if tab == page:
-        st.sidebar.markdown(f"<div class='sidebar-item sidebar-active'>{tab}</div>", unsafe_allow_html=True)
-    else:
-        st.sidebar.markdown(f"<div class='sidebar-item'>{tab}</div>", unsafe_allow_html=True)
+# Clean mapping without emojis for routing
+page_clean = page.split(" ", 1)[1]
 
 # ----------------------------------------------------------
-# PAGE ROUTING — IMPORT CORRESPONDING FILE
+# ROUTING
 # ----------------------------------------------------------
 
-if page == "Overview":
+if page_clean == "Overview":
     import pages.Overview as pg
     pg.show()
 
-elif page == "Data Cleaning":
+elif page_clean == "Dataset Information":
+    import pages.Dataset_Information as pg
+    pg.show()
+    
+elif page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
 
-elif page == "Exploratory Data Analysis":
+elif page_clean == "Exploratory Data Analysis":
     import pages.Exploratory_Data_Analysis as pg
     pg.show()
 
-elif page == "Data Modeling and Predictions":
+elif page_clean == "Data Modeling and Predictions":
     import pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
-elif page == "CPCB AQI Calculator":
+elif page_clean == "CPCB AQI Calculator":
     import pages.CPCB_AQI_Calculator as pg
     pg.show()
 
-elif page == "References":
+elif page_clean == "References":
     import pages.References as pg
     pg.show()
