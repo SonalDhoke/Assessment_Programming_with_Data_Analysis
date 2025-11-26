@@ -92,6 +92,7 @@ st.markdown("""
 # SIDEBAR NAVIGATION WITH ICONS
 # ----------------------------------------------------------
 
+# Your only sidebar title (WILL NOT duplicate now)
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
@@ -104,8 +105,8 @@ tabs = [
     "📚 References"
 ]
 
-# Radio menu
-page = st.sidebar.radio("", tabs, index=0)
+# FIX: Use label=" " to prevent the empty label from appearing as a header
+page = st.sidebar.radio(" ", tabs, index=0)
 
 # Clean mapping without emojis for routing
 page_clean = page.split(" ", 1)[1]
@@ -121,7 +122,7 @@ if page_clean == "Overview":
 elif page_clean == "Dataset Information":
     import pages.Dataset_Information as pg
     pg.show()
-    
+
 elif page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
