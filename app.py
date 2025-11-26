@@ -9,17 +9,15 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + UNIQUE HOVER COLORS
+# PASTEL THEME + UNIQUE HOVER COLORS + ICONS
 # ----------------------------------------------------------
 st.markdown("""
     <style>
 
-    /* Sidebar background */
     [data-testid="stSidebar"] {
         background-color: #F4F6FA;
     }
 
-    /* Title styling */
     .sidebar-title {
         font-size: 26px;
         font-weight: 700;
@@ -27,12 +25,12 @@ st.markdown("""
         padding-bottom: 12px;
     }
 
-    /* Hide original radio icons */
+    /* Hide radio circle icons */
     div[role="radiogroup"] > label > div:first-child {
         display: none !important;
     }
 
-    /* Base style for all items */
+    /* Base tab style */
     div[role="radiogroup"] > label {
         background-color: #ffffff;
         border: 1px solid #E2E6ED;
@@ -44,9 +42,12 @@ st.markdown("""
         color: #344767;
         font-size: 17px;
         transition: 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    /* ACTIVE TAB (pastel highlight) */
+    /* Active tab */
     div[aria-checked="true"] {
         background-color: #A7C4FF !important;
         border-color: #7CA4FF !important;
@@ -54,7 +55,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* Hover color themes (each tab gets a different pastel color) */
+    /* Hover pastel colors for each tab */
     div[role="radiogroup"] > label:nth-child(1):hover {
         background-color: #FFE8E8 !important;
         border-color: #FFCCCC !important;
@@ -84,47 +85,50 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR NAVIGATION WITH ICONS
 # ----------------------------------------------------------
 
-st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
-    "Overview",
-    "Data Cleaning",
-    "Exploratory Data Analysis",
-    "Data Modeling and Predictions",
-    "CPCB AQI Calculator",
-    "References"
+    "🏠 Overview",
+    "🧹 Data Cleaning",
+    "📊 Exploratory Data Analysis",
+    "🤖 Data Modeling and Predictions",
+    "🧮 CPCB AQI Calculator",
+    "📚 References"
 ]
 
-# Hidden-label but fully interactive radio
+# Radio menu
 page = st.sidebar.radio("", tabs, index=0)
+
+# Clean mapping without emojis for routing
+page_clean = page.split(" ", 1)[1]
 
 # ----------------------------------------------------------
 # ROUTING
 # ----------------------------------------------------------
 
-if page == "Overview":
+if page_clean == "Overview":
     import pages.Overview as pg
     pg.show()
 
-elif page == "Data Cleaning":
+elif page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
 
-elif page == "Exploratory Data Analysis":
+elif page_clean == "Exploratory Data Analysis":
     import pages.Exploratory_Data_Analysis as pg
     pg.show()
 
-elif page == "Data Modeling and Predictions":
+elif page_clean == "Data Modeling and Predictions":
     import pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
-elif page == "CPCB AQI Calculator":
+elif page_clean == "CPCB AQI Calculator":
     import pages.CPCB_AQI_Calculator as pg
     pg.show()
 
-elif page == "References":
+elif page_clean == "References":
     import pages.References as pg
     pg.show()
