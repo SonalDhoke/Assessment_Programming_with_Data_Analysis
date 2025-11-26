@@ -9,60 +9,60 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + HIGHLIGHTED SIDEBAR (SINGLE NAV)
+# CUSTOM SIDEBAR UI (HIGHLIGHTED TABS)
 # ----------------------------------------------------------
 st.markdown("""
     <style>
+        /* Sidebar background */
+        [data-testid="stSidebar"] {
+            background-color: #f7f7f7;
+        }
 
-    /* Soft pastel background for sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #F4F6FA;
-    }
+        /* Title styling */
+        .sidebar-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #333;
+            padding-bottom: 10px;
+        }
 
-    .sidebar-title {
-        font-size: 26px;
-        font-weight: 700;
-        padding-bottom: 12px;
-        color: #4A4A4A;
-    }
+        /* Sidebar tab container */
+        .sidebar-item {
+            padding: 10px 16px;
+            margin: 6px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #333;
+            border: 1px solid transparent;
+            transition: 0.2s ease-in-out;
+        }
 
-    /* Hide built-in radio labels so only custom menu shows */
-    div[role="radiogroup"] label {
-        display: none !important;
-    }
+        /* Hover effect */
+        .sidebar-item:hover {
+            background-color: #e6f2ff;
+            border-color: #99ccff;
+        }
 
-    /* Menu item style */
-    .menu-item {
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        font-size: 17px;
-        background-color: #ffffff;
-        border: 1px solid #E2E6ED;
-        color: #344767;
-        transition: 0.2s ease;
-    }
+        /* Active tab */
+        .sidebar-active {
+            background-color: #3399ff !important;
+            color: white !important;
+            border: 1px solid #0073e6 !important;
+            font-weight: 600;
+        }
 
-    /* Hover effect */
-    .menu-item:hover {
-        background-color: #E8F0FE;
-        border-color: #A7C4FF;
-    }
-
-    /* Selected menu item (pastel highlight) */
-    .menu-active {
-        background-color: #A7C4FF !important;
-        color: black !important;
-        font-weight: 600;
-        border: 1px solid #7CA4FF !important;
-    }
-
+        /* Hide default radio buttons */
+        div[role=radiogroup] > label > div:first-child {
+            display: none !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
 # SIDEBAR NAVIGATION
 # ----------------------------------------------------------
+
+st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
     "Overview",
@@ -73,21 +73,18 @@ tabs = [
     "References"
 ]
 
-# Underlying radio system (hidden visually)
-page = st.sidebar.radio("Menu", tabs, index=0)
+# Radio button selection
+page = st.sidebar.radio("Select page:", tabs)
 
-# Title
-st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
-
-# Custom visual menu
+# Highlighted items
 for tab in tabs:
     if tab == page:
-        st.sidebar.markdown(f"<div class='menu-item menu-active'>{tab}</div>", unsafe_allow_html=True)
+        st.sidebar.markdown(f"<div class='sidebar-item sidebar-active'>{tab}</div>", unsafe_allow_html=True)
     else:
-        st.sidebar.markdown(f"<div class='menu-item'>{tab}</div>", unsafe_allow_html=True)
+        st.sidebar.markdown(f"<div class='sidebar-item'>{tab}</div>", unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# ROUTING
+# PAGE ROUTING — IMPORT CORRESPONDING FILE
 # ----------------------------------------------------------
 
 if page == "Overview":
