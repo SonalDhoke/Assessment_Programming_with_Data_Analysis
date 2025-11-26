@@ -1,12 +1,13 @@
 import streamlit as st
 import pandas as pd
+import io
 
 def show():
 
     # ----------------------------
     # Load Dataset (Internal)
     # ----------------------------
-    df = pd.read_csv("pages/AQI_combined_data.csv")   # <-- Update name if needed
+    df = pd.read_csv("pages/AQI_combined_data.csv")   # <-- Update name/path if needed
     total_rows = df.shape[0]
 
     # ----------------------------
@@ -48,22 +49,52 @@ def show():
                 white-space: pre-wrap;
             }
 
+            /* ---------------- RADIO BUTTON STYLING ---------------- */
+
+            /* Base radio style */
+            div[role="radiogroup"] > label[data-baseweb="radio"] {
+                border: 1px solid #E3EAF4;
+                padding: 10px 14px;
+                margin: 5px 0;
+                border-radius: 10px;
+                background-color: white;
+                transition: 0.2s ease;
+                font-size: 16px;
+                color: #3A4A66;
+            }
+
+            /* Hover effect */
+            div[role="radiogroup"] > label[data-baseweb="radio"]:hover {
+                background-color: #f0f4fa;
+                border-color: #cfd8e3;
+            }
+
+            /* Highlight selected option */
+            div[aria-checked="true"][data-baseweb="radio"] {
+                background-color: #d8e8ff !important;   /* pastel blue */
+                border-color: #a7c4ff !important;
+                color: #2a3a55 !important;
+                font-weight: 600 !important;
+            }
+
         </style>
     """, unsafe_allow_html=True)
 
     # ----------------------------
     # Title
     # ----------------------------
-    st.markdown("<div class='section-header'>📘 Dataset Overview</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>📘 Dataset Information</div>", unsafe_allow_html=True)
 
     # ----------------------------
     # Dataset Description
     # ----------------------------
     st.markdown("""
     <div class="pastel-box">
-        This page provides an initial overview of the dataset used for AQI analysis.
-        You can preview rows, inspect dataset structure, and review basic statistics.
-        Cleaning, missing values, and transformations will be handled in the next page.
+        This page provides a high-level overview of the dataset used for AQI analysis.
+        You can explore the top/bottom rows, dataset structure, column data types, and
+        basic descriptive statistics.  
+        <br><br>
+        Detailed cleaning and preprocessing will be performed in the Data Cleaning page.
     </div>
     """, unsafe_allow_html=True)
 
@@ -116,9 +147,9 @@ def show():
     # ----------------------------
     st.markdown("<div class='sub-header'>🧠 Dataset Info (df.info)</div>", unsafe_allow_html=True)
 
-    buffer = []
-    df.info(buf=buffer.append)
-    info_str = "".join(buffer)
+    buffer = io.StringIO()
+    df.info(buf=buffer)
+    info_str = buffer.getvalue()
 
     st.markdown(f"<div class='pastel-box info-text'>{info_str}</div>", unsafe_allow_html=True)
 
