@@ -92,7 +92,6 @@ st.markdown("""
 # SIDEBAR NAVIGATION WITH ICONS
 # ----------------------------------------------------------
 
-# Your only sidebar title (WILL NOT duplicate now)
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
@@ -105,8 +104,8 @@ tabs = [
     "📚 References"
 ]
 
-# FIX: Use label=" " to prevent the empty label from appearing as a header
-page = st.sidebar.radio(" ", tabs, index=0)
+# Radio menu
+page = st.sidebar.radio("", tabs, index=0)
 
 # Clean mapping without emojis for routing
 page_clean = page.split(" ", 1)[1]
@@ -116,29 +115,29 @@ page_clean = page.split(" ", 1)[1]
 # ----------------------------------------------------------
 
 if page_clean == "Overview":
-    import app_pages.Overview as pg
+    import pages.Overview as pg
     pg.show()
 
 elif page_clean == "Dataset Information":
-    import app_pages.Dataset_Information as pg
+    import pages.Dataset_Information as pg
     pg.show()
-
+    
 elif page_clean == "Data Cleaning":
-    import app_pages.Data_Cleaning as pg
+    import pages.Data_Cleaning as pg
     pg.show()
 
 elif page_clean == "Exploratory Data Analysis":
-    import app_pages.Exploratory_Data_Analysis as pg
+    import pages.Exploratory_Data_Analysis as pg
     pg.show()
 
 elif page_clean == "Data Modeling and Predictions":
-    import app_pages.Data_Modeling_and_Predictions as pg
+    import pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
 elif page_clean == "CPCB AQI Calculator":
-    import app_pages.CPCB_AQI_Calculator as pg
+    import pages.CPCB_AQI_Calculator as pg
     pg.show()
 
 elif page_clean == "References":
-    import app_pages.References as pg
+    import pages.References as pg
     pg.show()
