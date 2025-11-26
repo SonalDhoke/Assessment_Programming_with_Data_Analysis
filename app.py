@@ -82,7 +82,7 @@ st.markdown("""
     }
     div[role="radiogroup"] > label:nth-child(7):hover {
         background-color: #dadfe0 !important;
-        border-color: #FFC4D6 !important;
+        border-color: #b7bdbe !important;
     }
 
     </style>
