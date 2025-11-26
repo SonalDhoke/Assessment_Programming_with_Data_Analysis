@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME FOR RADIO BUTTONS
+# PASTEL THEME + UNIQUE HOVER COLORS
 # ----------------------------------------------------------
 st.markdown("""
     <style>
@@ -19,39 +19,7 @@ st.markdown("""
         background-color: #F4F6FA;
     }
 
-    /* Remove the round radio buttons */
-    div[role="radiogroup"] > label > div:first-child {
-        display: none !important;
-    }
-
-    /* Style radio labels as pastel menu items */
-    div[role="radiogroup"] > label {
-        background-color: #ffffff;
-        border: 1px solid #E2E6ED;
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        width: 100%;
-        transition: 0.2s ease;
-        cursor: pointer;
-        color: #344767;
-        font-size: 17px;
-    }
-
-    /* Hover effect */
-    div[role="radiogroup"] > label:hover {
-        background-color: #E8F0FE;
-        border-color: #A7C4FF;
-    }
-
-    /* Selected item */
-    div[aria-checked="true"] {
-        background-color: #A7C4FF !important;
-        border-color: #7CA4FF !important;
-        color: black !important;
-        font-weight: 600 !important;
-    }
-
+    /* Title styling */
     .sidebar-title {
         font-size: 26px;
         font-weight: 700;
@@ -59,11 +27,64 @@ st.markdown("""
         padding-bottom: 12px;
     }
 
+    /* Hide original radio icons */
+    div[role="radiogroup"] > label > div:first-child {
+        display: none !important;
+    }
+
+    /* Base style for all items */
+    div[role="radiogroup"] > label {
+        background-color: #ffffff;
+        border: 1px solid #E2E6ED;
+        padding: 12px 16px;
+        margin: 6px 0;
+        border-radius: 10px;
+        width: 100%;
+        cursor: pointer;
+        color: #344767;
+        font-size: 17px;
+        transition: 0.2s ease;
+    }
+
+    /* ACTIVE TAB (pastel highlight) */
+    div[aria-checked="true"] {
+        background-color: #A7C4FF !important;
+        border-color: #7CA4FF !important;
+        color: black !important;
+        font-weight: 600 !important;
+    }
+
+    /* Hover color themes (each tab gets a different pastel color) */
+    div[role="radiogroup"] > label:nth-child(1):hover {
+        background-color: #FFE8E8 !important;
+        border-color: #FFCCCC !important;
+    }
+    div[role="radiogroup"] > label:nth-child(2):hover {
+        background-color: #FFF4D6 !important;
+        border-color: #FFE4A1 !important;
+    }
+    div[role="radiogroup"] > label:nth-child(3):hover {
+        background-color: #E8FFF3 !important;
+        border-color: #B9F5D0 !important;
+    }
+    div[role="radiogroup"] > label:nth-child(4):hover {
+        background-color: #E9F2FF !important;
+        border-color: #A7C4FF !important;
+    }
+    div[role="radiogroup"] > label:nth-child(5):hover {
+        background-color: #F5E8FF !important;
+        border-color: #D6B6FF !important;
+    }
+    div[role="radiogroup"] > label:nth-child(6):hover {
+        background-color: #FFF0F5 !important;
+        border-color: #FFC4D6 !important;
+    }
+
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION (FULLY INTERACTIVE)
+# SIDEBAR NAVIGATION
 # ----------------------------------------------------------
 
 st.sidebar.markdown("<div class='sidebar-title'>📌 Navigation</div>", unsafe_allow_html=True)
@@ -77,11 +98,11 @@ tabs = [
     "References"
 ]
 
-# This radio is now clickable AND beautifully styled
-page = st.sidebar.radio("Menu", tabs, index=0)
+# Hidden-label but fully interactive radio
+page = st.sidebar.radio("", tabs, index=0)
 
 # ----------------------------------------------------------
-# ROUTING TO OTHER PY FILES
+# ROUTING
 # ----------------------------------------------------------
 
 if page == "Overview":
