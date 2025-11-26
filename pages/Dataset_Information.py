@@ -49,8 +49,9 @@ def show():
                 white-space: pre-wrap;
             }
 
-            /* ---------------- RADIO BUTTON STYLING ---------------- */
+            /* ---------------- RADIO BUTTON STYLING (FOR THIS PAGE) ---------------- */
 
+            /* Base radio style */
             div[role="radiogroup"] > label {
                 border: 1px solid #E3EAF4;
                 padding: 10px 14px;
@@ -62,13 +63,15 @@ def show():
                 color: #3A4A66;
             }
 
+            /* Hover effect */
             div[role="radiogroup"] > label:hover {
                 background-color: #f0f4fa;
                 border-color: #cfd8e3;
             }
 
+            /* Highlight selected option */
             div[role="radiogroup"] > label[aria-checked="true"] {
-                background-color: #d8e8ff !important;
+                background-color: #d8e8ff !important;   /* pastel blue */
                 border-color: #a7c4ff !important;
                 color: #2a3a55 !important;
                 font-weight: 600 !important;
@@ -95,9 +98,9 @@ def show():
     </div>
     """, unsafe_allow_html=True)
 
-    # ===============================================================
-    # 🔍 VIEW ROWS BLOCK (Moved BEFORE STATISTICAL SUMMARY)
-    # ===============================================================
+    # ----------------------------
+    # Row Selection Section
+    # ----------------------------
     st.markdown("<div class='sub-header'>🔍 View Dataset Rows</div>", unsafe_allow_html=True)
 
     view_option = st.radio(
@@ -150,20 +153,14 @@ def show():
 
     st.markdown(f"<div class='pastel-box info-text'>{info_str}</div>", unsafe_allow_html=True)
 
-
-    # ===============================================================
-    # 📊 STATISTICAL SUMMARY (describe) with HEADER + INDEX highlight
-    # ===============================================================
-    st.markdown("<div class='sub-header'>📊 Statistical Summary</div>", unsafe_allow_html=True)
+    # ----------------------------
+    # df.describe() with bold headers & count/min/max
+    # ----------------------------
+    st.markdown("<div class='sub-header'>📊 Statistical Summary (describe)</div>", unsafe_allow_html=True)
 
     desc = df.describe()
 
-    # Bold headers + bold index (count, min, max)
-    styled_desc = desc.style.set_table_styles(
-        [{'selector': 'th.col_heading', 'props': [('font-weight', 'bold')]}]
-    ).set_properties(
-        **{'font-weight': 'bold'},
-        subset=pd.IndexSlice[['count', 'min', 'max'], :]
-    )
+    # Style: bold column headers AND index rows count, min, max
+    styled_desc = desc.style.set_properties(**{"font-weight": "bold"}, subset=pd.IndexSlice[['count', 'min', 'max'], :])
 
     st.dataframe(styled_desc, use_container_width=True)
