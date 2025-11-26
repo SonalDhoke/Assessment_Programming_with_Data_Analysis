@@ -49,10 +49,10 @@ def show():
                 white-space: pre-wrap;
             }
 
-            /* ---------------- RADIO BUTTON STYLING ---------------- */
+            /* ---------------- RADIO BUTTON STYLING (FOR THIS PAGE) ---------------- */
 
             /* Base radio style */
-            div[role="radiogroup"] > label[data-baseweb="radio"] {
+            div[role="radiogroup"] > label {
                 border: 1px solid #E3EAF4;
                 padding: 10px 14px;
                 margin: 5px 0;
@@ -64,13 +64,13 @@ def show():
             }
 
             /* Hover effect */
-            div[role="radiogroup"] > label[data-baseweb="radio"]:hover {
+            div[role="radiogroup"] > label:hover {
                 background-color: #f0f4fa;
                 border-color: #cfd8e3;
             }
 
             /* Highlight selected option */
-            div[aria-checked="true"][data-baseweb="radio"] {
+            div[role="radiogroup"] > label[aria-checked="true"] {
                 background-color: #d8e8ff !important;   /* pastel blue */
                 border-color: #a7c4ff !important;
                 color: #2a3a55 !important;
@@ -154,7 +154,13 @@ def show():
     st.markdown(f"<div class='pastel-box info-text'>{info_str}</div>", unsafe_allow_html=True)
 
     # ----------------------------
-    # df.describe()
+    # df.describe() with bold headers & count/min/max
     # ----------------------------
     st.markdown("<div class='sub-header'>📊 Statistical Summary (describe)</div>", unsafe_allow_html=True)
-    st.dataframe(df.describe(), use_container_width=True)
+
+    desc = df.describe()
+
+    # Style: bold column headers AND index rows count, min, max
+    styled_desc = desc.style.set_properties(**{"font-weight": "bold"}, subset=pd.IndexSlice[['count', 'min', 'max'], :])
+
+    st.dataframe(styled_desc, use_container_width=True)
