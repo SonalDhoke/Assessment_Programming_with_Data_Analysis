@@ -31,6 +31,9 @@ def show():
                 border-radius: 12px;
                 border: 1px solid #E3EAF4;
                 margin-bottom: 20px;
+                font-size: 16px;
+                line-height: 1.55;
+                color: #3A4A66;
             }
 
             .aqi-table {
@@ -40,6 +43,7 @@ def show():
                 background-color: white;
                 border-radius: 8px;
                 overflow: hidden;
+                font-size: 16px;
             }
 
             .aqi-table th {
@@ -72,15 +76,15 @@ def show():
     st.markdown("<div class='sub-header'>🌫️ What is AQI?</div>", unsafe_allow_html=True)
     st.markdown("""
         <div class="pastel-box">
-            The **Air Quality Index (AQI)** is a simplified, colour-coded number that represents 
+            The <b>Air Quality Index (AQI)</b> is a simplified, colour-coded number that represents 
             how clean or polluted the air currently is.  
-            AQI ranges from <b>0 to 500</b> and helps people quickly understand:
-            <ul>
-                <li>🔹 How healthy or unhealthy the air is</li>
-                <li>🔹 What health impacts may occur</li>
-                <li>🔹 Whether sensitive groups should limit outdoor activities</li>
-                <li>🔹 When pollution-control actions must be taken</li>
-            </ul>
+            AQI ranges from <b>0 to 500</b> and helps people quickly understand the following:
+            <br><br>
+            🔹 How healthy or unhealthy the air is<br>
+            🔹 What short-term health impacts may occur<br>
+            🔹 Whether sensitive groups should limit outdoor activity<br>
+            🔹 When pollution-control or emergency measures are required<br><br>
+            AQI makes complex pollution measurements easy to understand for the public, researchers, and policymakers.
         </div>
     """, unsafe_allow_html=True)
 
@@ -112,12 +116,12 @@ def show():
             "Penetrates deep into lungs; causes cardiovascular & respiratory issues.",
             "Irritates respiratory tract; causes coughing & throat discomfort.",
             "Emitted from vehicles/combustion; precursor to NO₂ & ozone.",
-            "Toxic gas that reduces lung function & forms smog.",
+            "Red-brown gas that reduces lung function & forms urban smog.",
             "Combination of NO & NO₂; drives ozone formation.",
-            "Released from fertilizers & waste; irritates eyes and lungs.",
+            "From fertilizers & waste; irritates eyes and lungs.",
             "Toxic gas reducing oxygen supply; dangerous at high levels.",
             "From burning fuels; causes asthma & airway inflammation.",
-            "Formed in sunlight from NOx + VOCs; damages lung tissue.",
+            "Formed from NOx + VOCs under sunlight; damages lung tissue.",
             "Carcinogenic VOC from fuel/solvents; harmful to nervous system.",
             "VOC from fuels/industry; causes headaches & irritation.",
             "VOC solvent; affects breathing & neurological functions."
@@ -133,14 +137,14 @@ def show():
     st.markdown("<div class='sub-header'>🧮 How AQI is Calculated</div>", unsafe_allow_html=True)
     st.markdown("""
         <div class="pastel-box">
-            AQI is calculated in the following steps:
-            <ul>
-                <li>📍 24-hour or 8-hour average concentration values are taken for pollutants</li>
-                <li>📍 Each pollutant is converted into a <b>Sub-Index</b> using CPCB breakpoint tables</li>
-                <li>📍 Sub-index is obtained using <b>linear interpolation</b></li>
-                <li>📍 The final AQI = <b>maximum</b> of all pollutant sub-indices</li>
-                <li>📍 The pollutant with the highest sub-index = <b>Dominant Pollutant</b></li>
-            </ul>
+            The AQI is derived through the following steps:
+            <br><br>
+            📍 Pollutant concentrations are averaged (24-hour or 8-hour depending on pollutant)<br>
+            📍 Each pollutant is converted into a <b>Sub-Index</b> based on CPCB-defined breakpoints<br>
+            📍 Sub-index is computed using <b>linear interpolation</b><br>
+            📍 The final AQI = <b>maximum</b> of all pollutant sub-indices<br>
+            📍 The pollutant with highest sub-index becomes the <b>Dominant Pollutant</b><br><br>
+            Only stations with sufficient data (including PM2.5 or PM10) can report AQI.
         </div>
     """, unsafe_allow_html=True)
 
@@ -203,12 +207,10 @@ def show():
 
     st.markdown("""
         <div class="pastel-box">
-            <ul>
-                <li>🔸 Helps people understand the air they breathe</li>
-                <li>🔸 Guides health advisories for children, elderly, asthma patients</li>
-                <li>🔸 Supports policy actions like GRAP, traffic control, and emission reduction</li>
-                <li>🔸 Tracks pollution trends for research and planning</li>
-                <li>🔸 Provides environmental visibility for decision-making</li>
-            </ul>
+            🔸 Helps people understand the health implications of the air they breathe<br>
+            🔸 Protects vulnerable groups like children, elderly, and asthma patients<br>
+            🔸 Enables authorities to take timely pollution-control actions<br>
+            🔸 Supports scientific research and policy planning<br>
+            🔸 Tracks pollution trends and environmental health over time
         </div>
     """, unsafe_allow_html=True)
