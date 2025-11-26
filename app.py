@@ -118,6 +118,10 @@ if page_clean == "Overview":
     import pages.Overview as pg
     pg.show()
 
+elif page_clean == "Dataset Information":
+    import pages.Dataset_Information as pg
+    pg.show()
+    
 elif page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
