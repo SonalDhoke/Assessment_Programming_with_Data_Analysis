@@ -1,8 +1,38 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from statsmodels.nonparametric.kde import KDEUnivariate
 import numpy as np
+
+# ----------------------------------------------------------
+# Lightweight KDE using ONLY NumPy
+# ----------------------------------------------------------
+def gaussian_kde_numpy(data, num_points=200):
+    """
+    Gaussian KDE using NumPy only.
+    Safe for Streamlit Cloud.
+    """
+    data = np.asarray(data)
+    data = data[~np.isnan(data)]
+
+    if len(data) < 2:
+        return None, None
+
+    xmin, xmax = data.min(), data.max()
+    x_vals = np.linspace(xmin, xmax, num_points)
+
+    # Scott's rule
+    bandwidth = 1.06 * data.std() * (len(data) ** -0.2)
+    bandwidth = max(bandwidth, 1e-8)
+
+    densities = np.zeros_like(x_vals)
+
+    for d in data:
+        densities += np.exp(-0.5 * ((x_vals - d) / bandwidth) ** 2)
+
+    densities /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
+
+    return x_vals, densities
+
 
 # ----------------------------------------------------------
 # Pastel CSS
@@ -27,6 +57,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ----------------------------------------------------------
+# MAIN FUNCTION
+# ----------------------------------------------------------
 def show():
 
     # ------------------- Load Data -----------------------
@@ -47,8 +80,11 @@ def show():
     st.header("📈 Distribution Analysis")
 
     # ------------------- Detect Pollutants --------------
-    exclude = {"City", "AQI", "AQI_Bucket", "AQI_Recalc",
-               "AQI_Bucket_Recalc", "Year", "Month_Name", "Week"}
+    exclude = {
+        "City", "AQI", "AQI_Bucket", "AQI_Recalc",
+        "AQI_Bucket_Recalc", "Year", "Month_Name", "Week"
+    }
+
     pollutant_cols = [
         c for c in df.columns
         if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
@@ -145,30 +181,24 @@ def show():
                 yaxis_title="Frequency"
             )
 
-            # ----------- KDE Toggle -----------
+            # ----------- KDE Curve -----------
             show_kde = st.checkbox("Show KDE Curve", value=True)
 
             if show_kde:
                 data = grouped_df[x_col].dropna().values
 
-                if len(data) > 1:  # KDE requires >= 2 data points
-                    kde = KDEUnivariate(data)
-                    kde.fit(kernel="gau", bw="scott")
+                x_vals, kde_vals = gaussian_kde_numpy(data)
 
-                    x_vals = kde.support
-                    y_vals = kde.density
+                if x_vals is not None:
+                    y_scaled = kde_vals * max(fig.data[0].y) / max(kde_vals)
 
-                    # scale KDE to match histogram height
-                    if max(y_vals) > 0:
-                        y_scaled = y_vals * max(fig.data[0].y) / max(y_vals)
-
-                        fig.add_scatter(
-                            x=x_vals,
-                            y=y_scaled,
-                            mode='lines',
-                            name="KDE Curve",
-                            line=dict(color="#FF7F7F", width=3)
-                        )
+                    fig.add_scatter(
+                        x=x_vals,
+                        y=y_scaled,
+                        mode='lines',
+                        name="KDE Curve",
+                        line=dict(color="#FF7F7F", width=3)
+                    )
 
         else:
             fig = px.bar(
