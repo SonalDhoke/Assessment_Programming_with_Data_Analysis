@@ -9,190 +9,187 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# CSS STYLING (pastel theme + nested submenu styling)
+# CSS: PASTEL DASHBOARD SIDEBAR + NESTED SUBMENU
 # ----------------------------------------------------------
 st.markdown("""
 <style>
 
 [data-testid="stSidebar"] {
-    background-color: #F4F6FA;
+    background: #F4F6FA;
+    padding-top: 20px;
 }
 
+/* Sidebar Title */
 .sidebar-title {
     font-size: 26px;
     font-weight: 700;
     color: #4A4A4A;
-    padding-bottom: 12px;
+    margin-bottom: 15px;
 }
 
-/* MAIN MENU BUTTON STYLING */
-.menu-btn {
-    background-color: white;
-    border: 1px solid #E2E6ED;
+/* MAIN MENU ITEM */
+.menu-item {
     padding: 12px 16px;
-    margin-bottom: 6px;
-    width: 100%;
+    margin: 6px 0;
     border-radius: 10px;
+    background: white;
+    border: 1px solid #E2E6ED;
     font-size: 17px;
     color: #344767;
     cursor: pointer;
     transition: 0.2s;
 }
 
-.menu-btn:hover {
-    background-color: #E9F2FF;
+/* MAIN MENU HOVER */
+.menu-item:hover {
+    background: #E9F2FF;
     border-color: #A7C4FF;
 }
 
-/* ACTIVE MAIN MENU ITEM */
+/* ACTIVE MAIN PAGE */
 .menu-active {
-    background-color: #A7C4FF !important;
+    background: #A7C4FF !important;
     border-color: #7CA4FF !important;
     color: black !important;
-    font-weight: 600 !important;
+    font-weight: 600;
 }
 
-/* SUBMENU CONTAINER */
-.submenu-box {
-    padding-left: 22px;
-    padding-top: 4px;
+/* SUBMENU WRAPPER */
+.submenu-wrapper {
+    margin-left: 20px;
+    margin-top: 5px;
 }
 
 /* SUBMENU ITEM */
-.submenu-btn {
-    background-color: #FFFFFF;
-    border: 1px solid #D8DFEA;
+.submenu-item {
     padding: 8px 14px;
     margin: 4px 0;
-    width: 100%;
     border-radius: 8px;
+    background: #FFFFFF;
+    border: 1px solid #D8DFEA;
     font-size: 15px;
     color: #455A64;
     cursor: pointer;
     transition: 0.2s;
 }
 
-.submenu-btn:hover {
-    background-color: #E9F2FF !important;
+/* SUBMENU HOVER */
+.submenu-item:hover {
+    background: #E9F2FF !important;
     border-color: #A7C4FF !important;
 }
 
-/* ACTIVE SUBMENU ITEM */
+/* ACTIVE SUBMENU */
 .submenu-active {
-    background-color: #CDE0FF !important;
+    background: #CDE0FF !important;
     border-color: #7CA4FF !important;
     color: black !important;
-    font-weight: 600 !important;
+    font-weight: 600;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR STATE
+# SESSION STATE
 # ----------------------------------------------------------
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Overview"
 
-if "eda_submenu_open" not in st.session_state:
-    st.session_state.eda_submenu_open = False
+if "eda_open" not in st.session_state:
+    st.session_state.eda_open = False
 
 if "active_eda" not in st.session_state:
     st.session_state.active_eda = "Distribution Analysis"
 
 
 # ----------------------------------------------------------
-# HELPER FUNCTIONS
+# FUNCTION: MAIN MENU CLICK
 # ----------------------------------------------------------
-
-def main_menu_button(label, key, icon):
-    """Creates a main menu button inside sidebar."""
-    is_active = (st.session_state.active_page == label)
-    css_class = "menu-btn " + ("menu-active" if is_active else "")
-
-    clicked = st.sidebar.button(f"{icon} {label}", key=key, use_container_width=True)
-    if clicked:
-        st.session_state.active_page = label
-        return True
-    return False
-
-
-def submenu_button(label, key):
-    """Creates submenu buttons under EDA."""
-    is_active = (st.session_state.active_eda == label)
-    css_class = "submenu-btn " + ("submenu-active" if is_active else "")
-
-    clicked = st.sidebar.button(label, key=key, use_container_width=True)
-    if clicked:
-        st.session_state.active_eda = label
-        return True
-    return False
+def click_main_page(page):
+    st.session_state.active_page = page
+    if page != "Exploratory Data Analysis":
+        st.session_state.eda_open = False
 
 
 # ----------------------------------------------------------
-# SIDEBAR MENU (WITH INLINE SUBMENU)
+# FUNCTION: SUBMENU CLICK
 # ----------------------------------------------------------
+def click_submenu(item):
+    st.session_state.active_page = "Exploratory Data Analysis"
+    st.session_state.active_eda = item
 
+
+# ----------------------------------------------------------
+# SIDEBAR UI (HTML)
+# ----------------------------------------------------------
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
-# ----------- Overview -----------
-if main_menu_button("Overview", "menu_overview", "🏠"):
-    st.session_state.eda_submenu_open = False
+# Helper to draw a clickable div
+def clickable(label, active, key):
+    css = "menu-item"
+    if active:
+        css += " menu-active"
+    if st.sidebar.button(label, key=key):
+        return True
+    st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
+    return False
 
-# ----------- Dataset Info -----------
-if main_menu_button("Dataset Information", "menu_dataset", "ℹ️"):
-    st.session_state.eda_submenu_open = False
 
-# ----------- Data Cleaning -----------
-if main_menu_button("Data Cleaning", "menu_clean", "🧹"):
-    st.session_state.eda_submenu_open = False
+# ---------------- MAIN MENU ITEMS ----------------
 
-# ----------- Exploratory Data Analysis (TOGGLES SUBMENU) -----------
-clicked_eda = main_menu_button("Exploratory Data Analysis", "menu_eda", "📊")
+if clickable("🏠 Overview", st.session_state.active_page == "Overview", "p_overview"):
+    click_main_page("Overview")
 
-if clicked_eda:
-    st.session_state.eda_submenu_open = not st.session_state.eda_submenu_open
+if clickable("ℹ️ Dataset Information", st.session_state.active_page == "Dataset Information", "p_dataset"):
+    click_main_page("Dataset Information")
 
-# ----------- SUBMENU APPEARS HERE — EXACTLY UNDER EDA -----------
-eda_choice = None
+if clickable("🧹 Data Cleaning", st.session_state.active_page == "Data Cleaning", "p_clean"):
+    click_main_page("Data Cleaning")
 
-if st.session_state.eda_submenu_open:
+# ----------- EXPANDABLE EDA MENU -----------
+if clickable("📊 Exploratory Data Analysis", st.session_state.active_page == "Exploratory Data Analysis", "p_eda"):
+    st.session_state.active_page = "Exploratory Data Analysis"
+    st.session_state.eda_open = not st.session_state.eda_open
 
-    st.sidebar.markdown("<div class='submenu-box'>", unsafe_allow_html=True)
+# ----------- SHOW NESTED SUBMENU HERE -----------
+if st.session_state.eda_open:
 
-    if submenu_button("Distribution Analysis", "sub_dist"):
-        pass
-    if submenu_button("Time-Series Analysis", "sub_ts"):
-        pass
-    if submenu_button("Correlation Matrix", "sub_corr"):
-        pass
-    if submenu_button("AQI Category Analysis", "sub_cat"):
-        pass
-    if submenu_button("Seasonal Patterns", "sub_season"):
-        pass
-    if submenu_button("Comparison Tool", "sub_comp"):
-        pass
+    st.sidebar.markdown("<div class='submenu-wrapper'>", unsafe_allow_html=True)
+
+    def submenu(label, key):
+        active = (st.session_state.active_eda == label)
+        css = "submenu-item submenu-active" if active else "submenu-item"
+        if st.sidebar.button(label, key=key):
+            click_submenu(label)
+        st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
+
+    submenu("Distribution Analysis", "sub1")
+    submenu("Time-Series Analysis", "sub2")
+    submenu("Correlation Matrix", "sub3")
+    submenu("AQI Category Analysis", "sub4")
+    submenu("Seasonal Patterns", "sub5")
+    submenu("Comparison Tool", "sub6")
 
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
+# ---------------------------------------------
+# Remaining main menu items
+# ---------------------------------------------
 
-# ----------- Data Modeling -----------
-if main_menu_button("Data Modeling and Predictions", "menu_model", "🤖"):
-    st.session_state.eda_submenu_open = False
+if clickable("🤖 Data Modeling and Predictions", st.session_state.active_page == "Data Modeling and Predictions", "p_model"):
+    click_main_page("Data Modeling and Predictions")
 
-# ----------- Calculator -----------
-if main_menu_button("CPCB AQI Calculator", "menu_calc", "🧮"):
-    st.session_state.eda_submenu_open = False
+if clickable("🧮 CPCB AQI Calculator", st.session_state.active_page == "CPCB AQI Calculator", "p_calc"):
+    click_main_page("CPCB AQI Calculator")
 
-# ----------- References -----------
-if main_menu_button("References", "menu_ref", "📚"):
-    st.session_state.eda_submenu_open = False
+if clickable("📚 References", st.session_state.active_page == "References", "p_ref"):
+    click_main_page("References")
 
 
 # ----------------------------------------------------------
 # PAGE ROUTING
 # ----------------------------------------------------------
-
 page = st.session_state.active_page
 eda_page = st.session_state.active_eda
 
