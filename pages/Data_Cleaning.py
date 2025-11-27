@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 def show():
 
@@ -32,11 +33,31 @@ def show():
     # Sort descending by Missing %
     missing_df = missing_df.sort_values("Missing %", ascending=False)
 
-    # Reset index to 1, 2, 3, ...
+    # Reset index to 1, 2, 3...
     missing_df.index = range(1, len(missing_df) + 1)
     missing_df.index.name = "No."
 
     st.dataframe(missing_df, use_container_width=True)
+
+    # -----------------------------------------
+    # PART 1B — MISSING VALUES HEATMAP (Compact)
+    # -----------------------------------------
+    with st.expander("📊 Show Missing Values Heatmap"):
+        st.write("Visual representation of missing values by column:")
+
+        # Convert df to True/False mask for missing values
+        heatmap_data = df.isnull()
+
+        # Plotly heatmap
+        fig = px.imshow(
+            heatmap_data.T,
+            color_continuous_scale=["#1f77b4", "#ff4136"],  # blue vs red
+            aspect="auto",
+            labels=dict(x="Row", y="Column", color="Missing"),
+        )
+        fig.update_layout(height=400)
+
+        st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
 
@@ -45,7 +66,7 @@ def show():
     # -----------------------------------------
     st.subheader("🗑️ Drop Columns")
 
-    # Custom label with working hover tooltip (NO ? symbol on hover)
+    # Custom label with working hover tooltip
     st.markdown(
         """
         <span style="font-size:16px;">
@@ -58,7 +79,6 @@ def show():
         unsafe_allow_html=True
     )
 
-    # Selectbox WITHOUT label (prevents double label)
     column_to_drop = st.selectbox(
         label="",
         options=df.columns,
@@ -66,9 +86,7 @@ def show():
         placeholder="Choose a column"
     )
 
-    # -----------------------------------------
-    # Drop + Undo Buttons (Side-by-side)
-    # -----------------------------------------
+    # Buttons side-by-side
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -77,7 +95,7 @@ def show():
     with col2:
         undo_clicked = st.button("Undo", use_container_width=True)
 
-    # DROP LOGIC
+    # Drop logic
     if drop_clicked:
         if column_to_drop:
             st.session_state.current_df.drop(columns=[column_to_drop], inplace=True)
@@ -85,7 +103,7 @@ def show():
         else:
             st.warning("⚠️ Please select a column first.")
 
-    # UNDO LOGIC
+    # Undo logic
     if undo_clicked:
         st.session_state.current_df = st.session_state.original_df.copy()
         st.success("♻️ Dataset restored to original state.")
