@@ -119,7 +119,8 @@ if "eda" in qp:
 # ----------------------------------------------------------
 def link(label, page=None, eda=None, submenu=False, active=False):
     """
-    Render a clickable HTML block using onclick navigation (no new tab).
+    Render a clickable HTML block using <a href> with target=_self
+    so navigation happens in SAME TAB.
     """
 
     css = "submenu-item" if submenu else "menu-item"
@@ -141,14 +142,15 @@ def link(label, page=None, eda=None, submenu=False, active=False):
     else:
         href = "?"
 
-    # FINAL HTML — using div onclick (no new tab!)
+    # FINAL HTML — force open in SAME TAB
     html = f"""
-    <div class="{css}" onclick="window.location.href='{href}'">
-        {label}
-    </div>
+    <a href="{href}" target="_self" style="text-decoration:none;">
+        <div class="{css}">{label}</div>
+    </a>
     """
 
     st.sidebar.markdown(html, unsafe_allow_html=True)
+
 
 # ----------------------------------------------------------
 # SIDEBAR — CLEAN, CUSTOM, PASTEL DASHBOARD MENU
