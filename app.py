@@ -9,219 +9,239 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + UNIQUE HOVER COLORS + ICONS + SUBMENU CSS
+# CSS STYLING (pastel theme + nested submenu styling)
 # ----------------------------------------------------------
 st.markdown("""
-    <style>
+<style>
 
-    [data-testid="stSidebar"] {
-        background-color: #F4F6FA;
-    }
+[data-testid="stSidebar"] {
+    background-color: #F4F6FA;
+}
 
-    .sidebar-title {
-        font-size: 26px;
-        font-weight: 700;
-        color: #4A4A4A;
-        padding-bottom: 12px;
-    }
+.sidebar-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #4A4A4A;
+    padding-bottom: 12px;
+}
 
-    /* Hide radio circle icons */
-    div[role="radiogroup"] > label > div:first-child {
-        display: none !important;
-    }
+/* MAIN MENU BUTTON STYLING */
+.menu-btn {
+    background-color: white;
+    border: 1px solid #E2E6ED;
+    padding: 12px 16px;
+    margin-bottom: 6px;
+    width: 100%;
+    border-radius: 10px;
+    font-size: 17px;
+    color: #344767;
+    cursor: pointer;
+    transition: 0.2s;
+}
 
-    /* Base tab style */
-    div[role="radiogroup"] > label {
-        background-color: #ffffff;
-        border: 1px solid #E2E6ED;
-        padding: 12px 16px;
-        margin: 6px 0;
-        border-radius: 10px;
-        width: 100%;
-        cursor: pointer;
-        color: #344767;
-        font-size: 17px;
-        transition: 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+.menu-btn:hover {
+    background-color: #E9F2FF;
+    border-color: #A7C4FF;
+}
 
-    /* Active tab */
-    div[aria-checked="true"] {
-        background-color: #A7C4FF !important;
-        border-color: #7CA4FF !important;
-        color: black !important;
-        font-weight: 600 !important;
-    }
+/* ACTIVE MAIN MENU ITEM */
+.menu-active {
+    background-color: #A7C4FF !important;
+    border-color: #7CA4FF !important;
+    color: black !important;
+    font-weight: 600 !important;
+}
 
-    /* Hover pastel colors for each tab */
-    div[role="radiogroup"] > label:nth-child(1):hover {
-        background-color: #FFE8E8 !important;
-        border-color: #FFCCCC !important;
-    }
-    div[role="radiogroup"] > label:nth-child(2):hover {
-        background-color: #FFF4D6 !important;
-        border-color: #FFE4A1 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(3):hover {
-        background-color: #E8FFF3 !important;
-        border-color: #B9F5D0 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(4):hover {
-        background-color: #E9F2FF !important;
-        border-color: #A7C4FF !important;
-    }
-    div[role="radiogroup"] > label:nth-child(5):hover {
-        background-color: #F5E8FF !important;
-        border-color: #D6B6FF !important;
-    }
-    div[role="radiogroup"] > label:nth-child(6):hover {
-        background-color: #FFF0F5 !important;
-        border-color: #FFC4D6 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(7):hover {
-        background-color: #dadfe0 !important;
-        border-color: #b7bdbe !important;
-    }
+/* SUBMENU CONTAINER */
+.submenu-box {
+    padding-left: 22px;
+    padding-top: 4px;
+}
 
-    /* -------------------------
-       NESTED SUBMENU CSS
-       ------------------------- */
+/* SUBMENU ITEM */
+.submenu-btn {
+    background-color: #FFFFFF;
+    border: 1px solid #D8DFEA;
+    padding: 8px 14px;
+    margin: 4px 0;
+    width: 100%;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #455A64;
+    cursor: pointer;
+    transition: 0.2s;
+}
 
-    /* Indent inside expander */
-    .nested-eda-container {
-        padding-left: 20px;
-        margin-top: -10px;
-    }
+.submenu-btn:hover {
+    background-color: #E9F2FF !important;
+    border-color: #A7C4FF !important;
+}
 
-    /* Styling submenu radio buttons */
-    .nested-eda-container div[role="radiogroup"] > label {
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin: 4px 0;
-        background-color: #FFFFFF;
-        border: 1px solid #D8DFEA;
-        font-size: 15px;
-        transition: 0.2s;
-    }
+/* ACTIVE SUBMENU ITEM */
+.submenu-active {
+    background-color: #CDE0FF !important;
+    border-color: #7CA4FF !important;
+    color: black !important;
+    font-weight: 600 !important;
+}
 
-    /* Hover effect for submenu */
-    .nested-eda-container div[role="radiogroup"] > label:hover {
-        background-color: #E9F2FF !important;
-        border-color: #A7C4FF !important;
-    }
-
-    /* Active submenu item */
-    .nested-eda-container div[aria-checked="true"] {
-        background-color: #CDE0FF !important;
-        border-color: #7CA4FF !important;
-        color: black !important;
-        font-weight: 600 !important;
-    }
-
-    </style>
+</style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION
+# SIDEBAR STATE
+# ----------------------------------------------------------
+if "active_page" not in st.session_state:
+    st.session_state.active_page = "Overview"
+
+if "eda_submenu_open" not in st.session_state:
+    st.session_state.eda_submenu_open = False
+
+if "active_eda" not in st.session_state:
+    st.session_state.active_eda = "Distribution Analysis"
+
+
+# ----------------------------------------------------------
+# HELPER FUNCTIONS
+# ----------------------------------------------------------
+
+def main_menu_button(label, key, icon):
+    """Creates a main menu button inside sidebar."""
+    is_active = (st.session_state.active_page == label)
+    css_class = "menu-btn " + ("menu-active" if is_active else "")
+
+    clicked = st.sidebar.button(f"{icon} {label}", key=key, use_container_width=True)
+    if clicked:
+        st.session_state.active_page = label
+        return True
+    return False
+
+
+def submenu_button(label, key):
+    """Creates submenu buttons under EDA."""
+    is_active = (st.session_state.active_eda == label)
+    css_class = "submenu-btn " + ("submenu-active" if is_active else "")
+
+    clicked = st.sidebar.button(label, key=key, use_container_width=True)
+    if clicked:
+        st.session_state.active_eda = label
+        return True
+    return False
+
+
+# ----------------------------------------------------------
+# SIDEBAR MENU (WITH INLINE SUBMENU)
 # ----------------------------------------------------------
 
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
-main_tabs = [
-    "🏠 Overview",
-    "ℹ️ Dataset Information",
-    "🧹 Data Cleaning",
-    "📊 Exploratory Data Analysis",
-    "🤖 Data Modeling and Predictions",
-    "🧮 CPCB AQI Calculator",
-    "📚 References"
-]
+# ----------- Overview -----------
+if main_menu_button("Overview", "menu_overview", "🏠"):
+    st.session_state.eda_submenu_open = False
 
-# Main sidebar radio menu
-main_page = st.sidebar.radio("", main_tabs, index=0)
-main_page_clean = main_page.split(" ", 1)[1]
+# ----------- Dataset Info -----------
+if main_menu_button("Dataset Information", "menu_dataset", "ℹ️"):
+    st.session_state.eda_submenu_open = False
 
+# ----------- Data Cleaning -----------
+if main_menu_button("Data Cleaning", "menu_clean", "🧹"):
+    st.session_state.eda_submenu_open = False
+
+# ----------- Exploratory Data Analysis (TOGGLES SUBMENU) -----------
+clicked_eda = main_menu_button("Exploratory Data Analysis", "menu_eda", "📊")
+
+if clicked_eda:
+    st.session_state.eda_submenu_open = not st.session_state.eda_submenu_open
+
+# ----------- SUBMENU APPEARS HERE — EXACTLY UNDER EDA -----------
 eda_choice = None
 
+if st.session_state.eda_submenu_open:
+
+    st.sidebar.markdown("<div class='submenu-box'>", unsafe_allow_html=True)
+
+    if submenu_button("Distribution Analysis", "sub_dist"):
+        pass
+    if submenu_button("Time-Series Analysis", "sub_ts"):
+        pass
+    if submenu_button("Correlation Matrix", "sub_corr"):
+        pass
+    if submenu_button("AQI Category Analysis", "sub_cat"):
+        pass
+    if submenu_button("Seasonal Patterns", "sub_season"):
+        pass
+    if submenu_button("Comparison Tool", "sub_comp"):
+        pass
+
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+
+# ----------- Data Modeling -----------
+if main_menu_button("Data Modeling and Predictions", "menu_model", "🤖"):
+    st.session_state.eda_submenu_open = False
+
+# ----------- Calculator -----------
+if main_menu_button("CPCB AQI Calculator", "menu_calc", "🧮"):
+    st.session_state.eda_submenu_open = False
+
+# ----------- References -----------
+if main_menu_button("References", "menu_ref", "📚"):
+    st.session_state.eda_submenu_open = False
+
+
 # ----------------------------------------------------------
-# PLACE SUBMENU DIRECTLY UNDER "Exploratory Data Analysis"
+# PAGE ROUTING
 # ----------------------------------------------------------
 
-if main_page_clean == "Exploratory Data Analysis":
+page = st.session_state.active_page
+eda_page = st.session_state.active_eda
 
-    with st.sidebar.expander("📊 EDA Options", expanded=True):
-
-        st.markdown("<div class='nested-eda-container'>", unsafe_allow_html=True)
-
-        eda_choice = st.radio(
-            "Select EDA module:",
-            [
-                "Distribution Analysis",
-                "Time-Series Analysis",
-                "Correlation Matrix",
-                "AQI Category Analysis",
-                "Seasonal Patterns",
-                "Comparison Tool"
-            ],
-            label_visibility="collapsed",
-            index=0
-        )
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ----------------------------------------------------------
-# ROUTING
-# ----------------------------------------------------------
-
-if main_page_clean == "Overview":
+if page == "Overview":
     import pages.Overview as pg
     pg.show()
 
-elif main_page_clean == "Dataset Information":
+elif page == "Dataset Information":
     import pages.Dataset_Information as pg
     pg.show()
 
-elif main_page_clean == "Data Cleaning":
+elif page == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
 
-elif main_page_clean == "Exploratory Data Analysis":
+elif page == "Exploratory Data Analysis":
 
-    if eda_choice == "Distribution Analysis":
+    if eda_page == "Distribution Analysis":
         import pages.EDA_Distribution as pg
         pg.show()
 
-    elif eda_choice == "Time-Series Analysis":
+    elif eda_page == "Time-Series Analysis":
         import pages.EDA_Timeseries as pg
         pg.show()
 
-    elif eda_choice == "Correlation Matrix":
+    elif eda_page == "Correlation Matrix":
         import pages.EDA_Correlation as pg
         pg.show()
 
-    elif eda_choice == "AQI Category Analysis":
+    elif eda_page == "AQI Category Analysis":
         import pages.EDA_AQI_Category as pg
         pg.show()
 
-    elif eda_choice == "Seasonal Patterns":
+    elif eda_page == "Seasonal Patterns":
         import pages.EDA_Seasonal as pg
         pg.show()
 
-    elif eda_choice == "Comparison Tool":
+    elif eda_page == "Comparison Tool":
         import pages.EDA_Comparison as pg
         pg.show()
 
-elif main_page_clean == "Data Modeling and Predictions":
+elif page == "Data Modeling and Predictions":
     import pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
-elif main_page_clean == "CPCB AQI Calculator":
+elif page == "CPCB AQI Calculator":
     import pages.CPCB_AQI_Calculator as pg
     pg.show()
 
-elif main_page_clean == "References":
+elif page == "References":
     import pages.References as pg
     pg.show()
