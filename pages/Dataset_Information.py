@@ -7,7 +7,7 @@ def show():
     # ----------------------------
     # Load Dataset (Internal)
     # ----------------------------
-    df = pd.read_csv("pages/AQI_combined_data.csv")   # <-- Update name/path if needed
+    df = pd.read_csv("pages/AQI_combined_data.csv")   # <-- Update path if needed
     total_rows = df.shape[0]
 
     # ----------------------------
@@ -96,7 +96,7 @@ def show():
     """, unsafe_allow_html=True)
 
     # ===============================================================
-    # 🔍 VIEW ROWS BLOCK (Moved BEFORE STATISTICAL SUMMARY)
+    # 🔍 VIEW ROWS BLOCK
     # ===============================================================
     st.markdown("<div class='sub-header'>🔍 View Dataset Rows</div>", unsafe_allow_html=True)
 
@@ -136,7 +136,11 @@ def show():
     # ----------------------------
     st.markdown("<div class='sub-header'>🔠 Column Data Types</div>", unsafe_allow_html=True)
 
-    dtype_df = pd.DataFrame(df.dtypes, columns=["Data Type"]).reset_index().rename(columns={"index": "Column"})
+    dtype_df = (
+        pd.DataFrame(df.dtypes, columns=["Data Type"])
+        .reset_index()
+        .rename(columns={"index": "Column"})
+    )
     st.dataframe(dtype_df, use_container_width=True)
 
     # ----------------------------
@@ -150,20 +154,12 @@ def show():
 
     st.markdown(f"<div class='pastel-box info-text'>{info_str}</div>", unsafe_allow_html=True)
 
-
     # ===============================================================
-    # 📊 STATISTICAL SUMMARY (describe) with HEADER + INDEX highlight
+    # 📊 STATISTICAL SUMMARY
     # ===============================================================
     st.markdown("<div class='sub-header'>📊 Statistical Summary</div>", unsafe_allow_html=True)
 
     desc = df.describe()
 
-    # Bold headers + bold index (count, min, max)
-    styled_desc = desc.style.set_table_styles(
-        [{'selector': 'th.col_heading', 'props': [('font-weight', 'bold')]}]
-    ).set_properties(
-        **{'font-weight': 'bold'},
-        subset=pd.IndexSlice[['count', 'min', 'max'], :]
-    )
-
-    st.dataframe(styled_desc, use_container_width=True)
+    # Streamlit cannot render a pandas Styler object reliably → FIXED
+    st.dataframe(desc, use_container_width=True)
