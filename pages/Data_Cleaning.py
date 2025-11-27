@@ -10,28 +10,23 @@ def show():
     # -----------------------------------------
     if "original_df" not in st.session_state:
         df = pd.read_csv("pages/AQI_combined_data.csv")
-        df["Date"] = pd.to_datetime(df["Date"])
-        st.session_state.original_df = df.copy()   # Backup
-        st.session_state.current_df = df.copy()    # Working copy
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        st.session_state.original_df = df.copy()
+        st.session_state.current_df = df.copy()
 
     df = st.session_state.current_df
 
     st.title("🧹 Data Cleaning")
 
     # -----------------------------------------
-    # PART 1 — MISSING VALUES TABLE
+    # PART 1 — Missing Values Table
     # -----------------------------------------
     st.subheader("📉 Missing Values (Column-wise)")
 
-    missing_df = (
-        df.isnull().sum()
-        .reset_index()
-        .rename(columns={"index": "Column", 0: "Missing Count"})
-    )
-
+    missing_df = df.isnull().sum().reset_index()
+    missing_df.columns = ["Column", "Missing Count"]
     missing_df["Missing %"] = (missing_df["Missing Count"] / len(df)) * 100
     missing_df["Missing %"] = missing_df["Missing %"].round(2)
-
     missing_df = missing_df.sort_values("Missing %", ascending=False)
     missing_df.index = range(1, len(missing_df) + 1)
     missing_df.index.name = "No."
@@ -55,43 +50,35 @@ def show():
     st.markdown("---")
 
     # -----------------------------------------
-    # PART 2 — DROP COLUMN SECTION
+    # PART 2 — Drop Column
     # -----------------------------------------
     st.subheader("🗑️ Drop Columns")
 
-    st.markdown(
-        """
+    st.markdown("""
         <span style="font-size:16px;">
             Select a column to drop 
             <span style="cursor: help;" title="Recommendation: Drop columns with > 50% missing values">
                 &#9432;
             </span>
         </span>
-        """,
-        unsafe_allow_html=True
-    )
+    """, unsafe_allow_html=True)
 
-    column_to_drop = st.selectbox(
-        label="",
-        options=df.columns,
-        index=None,
-        placeholder="Choose a column"
-    )
+    column_to_drop = st.selectbox("", options=df.columns, index=None, placeholder="Choose a column")
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns(2)
 
     with col1:
         drop_clicked = st.button("Drop Column", use_container_width=True)
 
     with col2:
-        undo_clicked = st.button("Undo", use_container_width=True)
+        undo_clicked = st.button("Undo All Changes", use_container_width=True)
 
     if drop_clicked:
         if column_to_drop:
             st.session_state.current_df.drop(columns=[column_to_drop], inplace=True)
-            st.success(f"✅ Column '{column_to_drop}' dropped successfully!")
+            st.success(f"🗑️ Column '{column_to_drop}' dropped successfully!")
         else:
-            st.warning("⚠️ Please select a column first.")
+            st.warning("⚠️ Select a column first.")
 
     if undo_clicked:
         st.session_state.current_df = st.session_state.original_df.copy()
@@ -100,13 +87,13 @@ def show():
     st.markdown("---")
 
     # -----------------------------------------
-    # PART 4 — IMPUTATION SECTION
+    # PART 3 — Imputation Section
     # -----------------------------------------
     with st.expander("🧩 Impute Missing Values", expanded=False):
 
         st.write("Select columns and choose a fill method:")
 
-        # -------- CHEMICAL GROUPS ---------
+        # ----- Chemical Group Auto-Selection -----
         chemical_groups = {
             "Nitrogen Oxides (NO, NO₂, NOx)": ["NO", "NO2", "NOx", "NO₂", "NOₓ"],
         }
@@ -117,25 +104,25 @@ def show():
             index=0
         )
 
-        # -------- MULTISELECT --------
+        # ----- Column Multiselect -----
         col_selection = st.multiselect(
             "Select columns to impute:",
             options=df.columns,
             placeholder="Choose columns...",
-            key="col_select"
+            key="impute_columns"
         )
 
-        # Auto-select chemical columns
+        # Auto-add chemical columns
         if chem_choice != "None":
-            for col in chemical_groups[chem_choice]:
-                if col in df.columns and col not in col_selection:
-                    col_selection.append(col)
-            st.session_state.col_select = col_selection
+            for c in chemical_groups[chem_choice]:
+                if c in df.columns and c not in col_selection:
+                    col_selection.append(c)
+            st.session_state.impute_columns = col_selection
 
-        # -------- CHIPS DISPLAY (visual only) --------
+        # ----- Chip Display -----
         chip_html = """
         <style>
-        .chip-container { margin-top: 5px; }
+        .chip-container { margin-top: 8px; }
         .chip {
             display:inline-block;
             padding:6px 12px;
@@ -144,28 +131,17 @@ def show():
             border-radius:12px;
             font-size:14px;
         }
-        .chip .closebtn {
-            margin-left:8px;
-            color:#b30000;
-            cursor:pointer;
-            font-weight:bold;
-        }
         </style>
-        <div class="chip-container">
+        <div class='chip-container'>
         """
 
         for c in col_selection:
-            chip_html += f"""
-            <span class="chip">{c} 
-                <span class="closebtn" title="Remove from dropdown">✖</span>
-            </span>
-            """
+            chip_html += f"<span class='chip'>{c}</span>"
 
         chip_html += "</div>"
-
         components.html(chip_html, height=120)
 
-        # -------- METHOD --------
+        # ----- Method Selection -----
         method = st.selectbox(
             "Choose imputation method:",
             [
@@ -179,73 +155,81 @@ def show():
             ]
         )
 
-        # -------- FREQUENCY IF NEEDED --------
         freq_needed = method in ["Mean", "Median", "Mode", "Forward Fill"]
         freq = st.selectbox("Frequency:", ["Monthly", "Yearly"]) if freq_needed else None
 
-        # -------- CHEMICAL TIP --------
+        # ----- Chemical Tips -----
         if any(c in col_selection for c in ["NO", "NO2", "NOx", "NO₂", "NOₓ"]):
-            st.info(
-                "💡 **Chemical Tip:**\n"
-                "NOx ≈ NO + NO₂. Missing values can be estimated using:\n"
-                "- **NOx = NO + NO₂**\n"
-                "- **NO = NOx - NO₂**\n"
-                "- **NO₂ = NOx - NO**\n"
-                "⚠ Ensure units are consistent before using this relationship."
-            )
+            st.info("""
+                💡 **Chemical Tip:**  
+                NOx ≈ NO + NO₂  
+                You can fill missing values using:
+                - NOx = NO + NO₂  
+                - NO = NOx − NO₂  
+                - NO₂ = NOx − NO  
+                ⚠ Ensure units are consistent.
+            """)
 
-        # -------- APPLY IMPUTATION --------
+        # ----- Apply Imputation -----
         if st.button("Apply Imputation"):
             if not col_selection:
-                st.warning("⚠ Please select at least one column.")
+                st.warning("⚠️ Select at least one column.")
             else:
-                before_missing = df[col_selection].isnull().sum().sum()
 
-                # ===== IMPUTATION LOGIC =====
+                # GUARANTEE Date stays datetime
+                df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-                if method == "Mean":
+                # BEFORE COUNTS
+                before = df[col_selection].isnull().sum().rename("Before")
+
+                # ========== IMPUTATION METHODS ==========
+                if method in ["Mean", "Median", "Mode"]:
                     for c in col_selection:
-                        gr = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
-                        df[c] = df.groupby(gr)[c].transform(lambda x: x.fillna(x.mean()))
+                        if freq == "Monthly":
+                            grp = df["Date"].dt.to_period("M")
+                        else:
+                            grp = df["Date"].dt.year
 
-                elif method == "Median":
-                    for c in col_selection:
-                        gr = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
-                        df[c] = df.groupby(gr)[c].transform(lambda x: x.fillna(x.median()))
+                        if method == "Mean":
+                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.mean()))
 
-                elif method == "Mode":
-                    for c in col_selection:
-                        gr = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
-                        df[c] = df.groupby(gr)[c].transform(lambda x: x.fillna(x.mode().iloc[0] if not x.mode().empty else x))
+                        elif method == "Median":
+                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.median()))
+
+                        elif method == "Mode":
+                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.mode().iloc[0] if not x.mode().empty else x))
 
                 elif method == "Forward Fill":
                     for c in col_selection:
-                        gr = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
-                        df[c] = df.groupby(gr)[c].ffill()
+                        if freq == "Monthly":
+                            grp = df["Date"].dt.to_period("M")
+                        else:
+                            grp = df["Date"].dt.year
+                        df[c] = df.groupby(grp)[c].ffill()
 
                 elif method == "Interpolate (City + Date)":
-                    df.set_index("Date", inplace=True)
                     for c in col_selection:
+                        df = df.sort_values(["City", "Date"])
                         df[c] = df.groupby("City")[c].apply(lambda x: x.interpolate())
-                    df.reset_index(inplace=True)
 
                 elif method == "Interpolate (Date)":
-                    df.set_index("Date", inplace=True)
-                    df[col_selection] = df[col_selection].interpolate()
-                    df.reset_index(inplace=True)
+                    df = df.sort_values("Date")
+                    for c in col_selection:
+                        df[c] = df[c].interpolate()
 
                 elif method == "Monthly Median":
                     for c in col_selection:
                         df[c] = df.groupby(df["Date"].dt.to_period("M"))[c].transform(lambda x: x.fillna(x.median()))
 
+                # AFTER COUNTS
+                after = df[col_selection].isnull().sum().rename("After")
+
+                result_df = pd.concat([before, after], axis=1)
+
                 st.session_state.current_df = df
 
-                after_missing = df[col_selection].isnull().sum().sum()
-
-                st.success(
-                    f"✨ Imputation applied successfully!\n"
-                    f"Missing before: **{before_missing}** → after: **{after_missing}**"
-                )
+                st.success("✨ Imputation applied successfully!")
+                st.dataframe(result_df, use_container_width=True)
 
     # -----------------------------------------
     # Current Dataset Preview
