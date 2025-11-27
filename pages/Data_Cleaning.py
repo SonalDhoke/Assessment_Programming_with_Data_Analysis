@@ -276,45 +276,49 @@ def show():
     # ==============================================================
     # PART 4 — DATE-BASED COLUMN CREATION
     # ==============================================================
-    st.subheader("📆 Create Date-Based Columns (Optional)")
+   # --------------------------------------------------------------
+# PART 4 — DATE-BASED COLUMN CREATION
+# --------------------------------------------------------------
+st.subheader("📆 Create Date-Based Columns (Optional)")
 
-    st.info("Use this to generate columns needed for EDA.")
+st.info("Use this to generate columns needed for EDA.")
 
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    date_options = st.multiselect(
-        "Select fields to create:",
-        ["Year", "Month Number", "Month Name", "Day", "Week Number"],
-        placeholder="Choose..."
-    )
+date_options = st.multiselect(
+    "Select fields to create:",
+    ["Year", "Month Number", "Month Name", "Day", "Week Number"],
+    placeholder="Choose..."
+)
 
-    if st.button("Create Date Columns"):
-        if not date_options:
-            st.warning("⚠️ Select at least one.")
-        else:
-            if "Year" in date_options:
-                df["Year"] = df["Date"].dt.year
+if st.button("Create Date Columns"):
+    if not date_options:
+        st.warning("⚠️ Select at least one.")
+    else:
+        if "Year" in date_options:
+            df["Year"] = df["Date"].dt.year.astype("Int64")
 
-            if "Month Number" in date_options:
-                df["Month_Number"] = df["Date"].dt.month
+        if "Month Number" in date_options:
+            df["Month_Number"] = df["Date"].dt.month.astype("Int64")
 
-            if "Month Name" in date_options:
-                df["Month_Name"] = df["Date"].dt.strftime("%B")
-                month_order = [
-                    "January","February","March","April","May","June",
-                    "July","August","September","October","November","December"
-                ]
-                df["Month_Name"] = pd.Categorical(df["Month_Name"], categories=month_order, ordered=True)
+        if "Month Name" in date_options:
+            df["Month_Name"] = df["Date"].dt.strftime("%B")
+            month_order = [
+                "January","February","March","April","May","June",
+                "July","August","September","October","November","December"
+            ]
+            df["Month_Name"] = pd.Categorical(df["Month_Name"], categories=month_order, ordered=True)
 
-            if "Day" in date_options:
-                df["Day"] = df["Date"].dt.day
+        if "Day" in date_options:
+            df["Day"] = df["Date"].dt.day.astype("Int64")
 
-            if "Week Number" in date_options:
-                df["Week_Number"] = df["Date"].dt.isocalendar().week
+        if "Week Number" in date_options:
+            # SAFE conversion
+            df["Week_Number"] = df["Date"].dt.isocalendar().week.astype(int)
 
-            st.success("🎉 Date-based columns created!")
-            st.session_state.current_df = df
-            st.experimental_rerun()
+        st.success("🎉 Date-based columns created!")
+        st.session_state.current_df = df
+        st.experimental_rerun()
 
     # ==============================================================
     # CURRENT DATASET PREVIEW
