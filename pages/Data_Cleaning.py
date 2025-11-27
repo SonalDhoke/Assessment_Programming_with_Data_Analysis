@@ -378,3 +378,53 @@ def show():
     # ==============================================================
     st.subheader("📄 Current Dataset Preview")
     st.dataframe(st.session_state.current_df, use_container_width=True)
+
+    # ==============================================================
+    # FINAL CLEANING CONFIRMATION
+    # ==============================================================
+    st.markdown("---")
+    st.subheader("🛠️ Finalize Cleaning")
+    
+    st.info("""
+    After all missing value treatment and corrections are done,
+    you can either **confirm and save** this cleaned dataset or **reset everything**.
+    """)
+    
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        confirm = st.button("✔ Confirm & Save Clean Dataset", use_container_width=True)
+    
+    with c2:
+        reset_all = st.button("🔄 Reset All Changes", use_container_width=True)
+    
+    # -----------------------------
+    # CONFIRM & SAVE CLEANED DATASET
+    # -----------------------------
+    if confirm:
+    
+        # Save permanently for EDA pages
+        st.session_state.cleaned_df = st.session_state.current_df.copy()
+    
+        st.success("""
+        🎉 **Dataset successfully cleaned and saved!**  
+        You may now navigate to the **EDA page** to explore insights  
+        using the fully processed dataset.
+        """)
+    
+        st.balloons()
+    
+    
+    # -----------------------------
+    # RESET EVERYTHING
+    # -----------------------------
+    if reset_all:
+        st.session_state.current_df = st.session_state.original_df.copy()
+    
+        # Optional: remove cleaned_df if exists
+        if "cleaned_df" in st.session_state:
+            del st.session_state.cleaned_df
+    
+        st.success("🔄 All changes have been reset! Dataset restored to original state.")
+        st.rerun()
+    
