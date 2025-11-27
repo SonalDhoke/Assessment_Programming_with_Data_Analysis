@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + UNIQUE HOVER COLORS + ICONS
+# PASTEL THEME + UNIQUE HOVER COLORS + ICONS + SUBMENU CSS
 # ----------------------------------------------------------
 st.markdown("""
     <style>
@@ -85,11 +85,46 @@ st.markdown("""
         border-color: #b7bdbe !important;
     }
 
+    /* -------------------------
+       NESTED SUBMENU CSS
+       ------------------------- */
+
+    /* Indent inside expander */
+    .nested-eda-container {
+        padding-left: 20px;
+        margin-top: -10px;
+    }
+
+    /* Styling submenu radio buttons */
+    .nested-eda-container div[role="radiogroup"] > label {
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin: 4px 0;
+        background-color: #FFFFFF;
+        border: 1px solid #D8DFEA;
+        font-size: 15px;
+        transition: 0.2s;
+    }
+
+    /* Hover effect for submenu */
+    .nested-eda-container div[role="radiogroup"] > label:hover {
+        background-color: #E9F2FF !important;
+        border-color: #A7C4FF !important;
+    }
+
+    /* Active submenu item */
+    .nested-eda-container div[aria-checked="true"] {
+        background-color: #CDE0FF !important;
+        border-color: #7CA4FF !important;
+        color: black !important;
+        font-weight: 600 !important;
+    }
+
     </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION WITH SUBMENU FOR EDA
+# SIDEBAR NAVIGATION
 # ----------------------------------------------------------
 
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
@@ -104,21 +139,21 @@ main_tabs = [
     "📚 References"
 ]
 
-# Main dropdown
+# Main sidebar radio menu
 main_page = st.sidebar.radio("", main_tabs, index=0)
-
-# Clean text (remove emoji)
 main_page_clean = main_page.split(" ", 1)[1]
-
-
-# ----------------------------------------------------------
-# COLLAPSIBLE SUB-SIDEBAR FOR EDA
-# ----------------------------------------------------------
 
 eda_choice = None
 
+# ----------------------------------------------------------
+# PLACE SUBMENU DIRECTLY UNDER "Exploratory Data Analysis"
+# ----------------------------------------------------------
+
 if main_page_clean == "Exploratory Data Analysis":
+
     with st.sidebar.expander("📊 EDA Options", expanded=True):
+
+        st.markdown("<div class='nested-eda-container'>", unsafe_allow_html=True)
 
         eda_choice = st.radio(
             "Select EDA module:",
@@ -130,12 +165,15 @@ if main_page_clean == "Exploratory Data Analysis":
                 "Seasonal Patterns",
                 "Comparison Tool"
             ],
+            label_visibility="collapsed",
             index=0
         )
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 # ----------------------------------------------------------
-# ROUTER
+# ROUTING
 # ----------------------------------------------------------
 
 if main_page_clean == "Overview":
@@ -152,7 +190,6 @@ elif main_page_clean == "Data Cleaning":
 
 elif main_page_clean == "Exploratory Data Analysis":
 
-    # Load your modular / individual EDA pages here
     if eda_choice == "Distribution Analysis":
         import pages.EDA_Distribution as pg
         pg.show()
