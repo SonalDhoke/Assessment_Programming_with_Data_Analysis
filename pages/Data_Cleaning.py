@@ -266,4 +266,20 @@ def show():
         else:
             if "Year" in date_options:
                 df["Year"] = df["Date"].dt.year.astype("Int64")
-            if "Month Number" in date
+            if "Month Number" in date_options:
+                df["Month_Number"] = df["Date"].dt.month.astype("Int64")
+            if "Month Name" in date_options:
+                df["Month_Name"] = df["Date"].dt.strftime("%B")
+            if "Day" in date_options:
+                df["Day"] = df["Date"].dt.day.astype("Int64")
+            if "Week Number" in date_options:
+                df["Week_Number"] = df["Date"].dt.isocalendar().week.astype(int)
+
+            st.success("🎉 Date-based columns created!")
+            st.session_state.current_df = df
+
+    # ==============================================================
+    # PREVIEW
+    # ==============================================================
+    st.subheader("📄 Current Dataset Preview")
+    st.dataframe(st.session_state.current_df, use_container_width=True)
