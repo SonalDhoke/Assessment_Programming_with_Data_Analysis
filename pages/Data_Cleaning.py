@@ -17,8 +17,8 @@ def show():
 
     st.write(
         """
-        Below you can explore missing values, drop columns,
-        and undo changes applied to the dataset.
+        Explore missing values, drop problematic columns,
+        and undo cleaning actions.
         """
     )
 
@@ -35,6 +35,9 @@ def show():
     missing_df["Missing %"] = (missing_df["Missing Count"] / len(df)) * 100
     missing_df["Missing %"] = missing_df["Missing %"].round(2)
 
+    # SORT descending by missing %
+    missing_df = missing_df.sort_values("Missing %", ascending=False)
+
     st.dataframe(missing_df, use_container_width=True)
 
     st.markdown("---")
@@ -44,19 +47,22 @@ def show():
     # -----------------------------------------
     st.subheader("🗑️ Drop Columns")
 
-    # Tooltip / hover information icon
+    # Custom label with hover info (NO duplicate now)
     st.markdown(
         """
         <span style="font-size:16px;">
-        Select a column to drop 
-        <span title="Recommendation: Drop columns with more than 50% missing values">ℹ️</span>
+            Select a column to drop 
+            <span style="cursor: help;" title="Recommendation: Drop columns with more than 50% missing values">
+                ℹ️
+            </span>
         </span>
         """,
         unsafe_allow_html=True
     )
 
+    # Remove the label from selectbox by setting label=""
     column_to_drop = st.selectbox(
-        "Select a column to drop",
+        label="",      # ← removes duplicate label
         options=df.columns,
         index=None,
         placeholder="Choose a column"
