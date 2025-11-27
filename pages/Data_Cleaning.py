@@ -3,11 +3,33 @@ import pandas as pd
 import plotly.express as px
 import streamlit.components.v1 as components
 
+# ------------------------ CHIP RENDERER --------------------------
+def render_chips(selected, key_prefix):
+    """Displays selected columns as pills + removable buttons."""
+    st.write("### Selected Columns")
+
+    if not selected:
+        st.info("No columns selected.")
+        return None
+
+    cols = st.columns(len(selected))
+    removed = None
+
+    for i, col in enumerate(selected):
+        with cols[i]:
+            st.markdown(f"**{col}**")
+            if st.button("✖", key=f"{key_prefix}_{col}", help="Remove this column"):
+                removed = col
+
+    return removed
+
+
+# ---------------------------- MAIN PAGE ---------------------------
 def show():
 
-    # -----------------------------------------
-    # Load dataset ONCE using session_state
-    # -----------------------------------------
+    # --------------------------------------------------------------
+    # LOAD DATA ONCE
+    # --------------------------------------------------------------
     if "original_df" not in st.session_state:
         df = pd.read_csv("pages/AQI_combined_data.csv")
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
@@ -16,11 +38,24 @@ def show():
 
     df = st.session_state.current_df
 
+    # --------------------------------------------------------------
+    # ALWAYS KEEP DATE CLEAN + EXTRA DATE COLUMNS FOR EDA
+    # --------------------------------------------------------------
+    if "Date" in df.columns:
+
+        # Strong normalization of Date before ANY operation
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+        # If Date accidentally became index due to interpolation
+        if isinstance(df.index, pd.DatetimeIndex):
+            df.reset_index(inplace=True, drop=True)
+            df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
     st.title("🧹 Data Cleaning")
 
-    # -----------------------------------------
-    # PART 1 — Missing Values Table
-    # -----------------------------------------
+    # ==============================================================
+    # PART 1 — MISSING VALUES TABLE
+    # ==============================================================
     st.subheader("📉 Missing Values (Column-wise)")
 
     missing_df = df.isnull().sum().reset_index()
@@ -33,9 +68,9 @@ def show():
 
     st.dataframe(missing_df, use_container_width=True)
 
-    # -----------------------------------------
-    # PART 1B — Heatmap
-    # -----------------------------------------
+    # ==============================================================
+    # PART 1B — HEATMAP
+    # ==============================================================
     with st.expander("📊 Show Missing Values Heatmap"):
         heatmap_data = df.isnull()
         fig = px.imshow(
@@ -49,51 +84,54 @@ def show():
 
     st.markdown("---")
 
-    # -----------------------------------------
-    # PART 2 — Drop Column
-    # -----------------------------------------
+    # ==============================================================
+    # PART 2 — DROP COLUMN
+    # ==============================================================
     st.subheader("🗑️ Drop Columns")
 
-    st.markdown("""
+    st.markdown(
+        """
         <span style="font-size:16px;">
             Select a column to drop 
             <span style="cursor: help;" title="Recommendation: Drop columns with > 50% missing values">
                 &#9432;
             </span>
         </span>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
 
     column_to_drop = st.selectbox("", options=df.columns, index=None, placeholder="Choose a column")
 
-    col1, col2 = st.columns(2)
-
-    with col1:
+    c1, c2 = st.columns(2)
+    with c1:
         drop_clicked = st.button("Drop Column", use_container_width=True)
-
-    with col2:
+    with c2:
         undo_clicked = st.button("Undo All Changes", use_container_width=True)
 
     if drop_clicked:
         if column_to_drop:
             st.session_state.current_df.drop(columns=[column_to_drop], inplace=True)
             st.success(f"🗑️ Column '{column_to_drop}' dropped successfully!")
+            st.experimental_rerun()
         else:
-            st.warning("⚠️ Select a column first.")
+            st.warning("⚠️ Please select a column.")
 
     if undo_clicked:
         st.session_state.current_df = st.session_state.original_df.copy()
         st.success("♻️ Dataset restored to original state.")
+        st.experimental_rerun()
 
     st.markdown("---")
 
-    # -----------------------------------------
-    # PART 3 — Imputation Section
-    # -----------------------------------------
+    # ==============================================================
+    # PART 3 — IMPUTATION
+    # ==============================================================
     with st.expander("🧩 Impute Missing Values", expanded=False):
 
         st.write("Select columns and choose a fill method:")
 
-        # ----- Chemical Group Auto-Selection -----
+        # ---- CHEMICAL GROUPS ----
         chemical_groups = {
             "Nitrogen Oxides (NO, NO₂, NOx)": ["NO", "NO2", "NOx", "NO₂", "NOₓ"],
         }
@@ -101,10 +139,10 @@ def show():
         chem_choice = st.selectbox(
             "Select chemical group (optional):",
             ["None"] + list(chemical_groups.keys()),
-            index=0
+            index=0,
         )
 
-        # ----- Column Multiselect -----
+        # ---- MULTISELECT ----
         col_selection = st.multiselect(
             "Select columns to impute:",
             options=df.columns,
@@ -114,34 +152,19 @@ def show():
 
         # Auto-add chemical columns
         if chem_choice != "None":
-            for c in chemical_groups[chem_choice]:
-                if c in df.columns and c not in col_selection:
-                    col_selection.append(c)
+            for col in chemical_groups[chem_choice]:
+                if col in df.columns and col not in col_selection:
+                    col_selection.append(col)
             st.session_state.impute_columns = col_selection
 
-        # ----- Chip Display -----
-        chip_html = """
-        <style>
-        .chip-container { margin-top: 8px; }
-        .chip {
-            display:inline-block;
-            padding:6px 12px;
-            margin:4px;
-            background-color:#ddecff;
-            border-radius:12px;
-            font-size:14px;
-        }
-        </style>
-        <div class='chip-container'>
-        """
+        # ---- CHIP RENDER ----
+        removed = render_chips(col_selection, key_prefix="chip")
+        if removed:
+            col_selection.remove(removed)
+            st.session_state.impute_columns = col_selection
+            st.experimental_rerun()
 
-        for c in col_selection:
-            chip_html += f"<span class='chip'>{c}</span>"
-
-        chip_html += "</div>"
-        components.html(chip_html, height=120)
-
-        # ----- Method Selection -----
+        # ---- IMPUTATION METHODS ----
         method = st.selectbox(
             "Choose imputation method:",
             [
@@ -152,64 +175,59 @@ def show():
                 "Interpolate (City + Date)",
                 "Interpolate (Date)",
                 "Monthly Median",
+                "Fill Using Chemical Formula (NO + NO₂ = NOx)"
             ]
         )
 
         freq_needed = method in ["Mean", "Median", "Mode", "Forward Fill"]
         freq = st.selectbox("Frequency:", ["Monthly", "Yearly"]) if freq_needed else None
 
-        # ----- Chemical Tips -----
-        if any(c in col_selection for c in ["NO", "NO2", "NOx", "NO₂", "NOₓ"]):
+        # ---- CHEMICAL FORMULA INFO ----
+        if any(c in col_selection for c in ["NO", "NO2", "NOx", "NO₂"]):
             st.info("""
                 💡 **Chemical Tip:**  
                 NOx ≈ NO + NO₂  
-                You can fill missing values using:
-                - NOx = NO + NO₂  
-                - NO = NOx − NO₂  
-                - NO₂ = NOx − NO  
-                ⚠ Ensure units are consistent.
+                Missing values can be estimated using:
+                • NOx = NO + NO₂  
+                • NO = NOx − NO₂  
+                • NO₂ = NOx − NO  
             """)
 
-        # ----- Apply Imputation -----
+        # ======================================================
+        # APPLY IMPUTATION
+        # ======================================================
         if st.button("Apply Imputation"):
             if not col_selection:
                 st.warning("⚠️ Select at least one column.")
             else:
 
-                # GUARANTEE Date stays datetime
+                # Ensure datetime safety
                 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-                # BEFORE COUNTS
                 before = df[col_selection].isnull().sum().rename("Before")
 
-                # ========== IMPUTATION METHODS ==========
+                # ---------------------- IMPUTATION METHODS ---------------------
+
                 if method in ["Mean", "Median", "Mode"]:
                     for c in col_selection:
-                        if freq == "Monthly":
-                            grp = df["Date"].dt.to_period("M")
-                        else:
-                            grp = df["Date"].dt.year
-
+                        group_key = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
                         if method == "Mean":
-                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.mean()))
-
+                            df[c] = df.groupby(group_key)[c].transform(lambda x: x.fillna(x.mean()))
                         elif method == "Median":
-                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.median()))
-
+                            df[c] = df.groupby(group_key)[c].transform(lambda x: x.fillna(x.median()))
                         elif method == "Mode":
-                            df[c] = df.groupby(grp)[c].transform(lambda x: x.fillna(x.mode().iloc[0] if not x.mode().empty else x))
+                            df[c] = df.groupby(group_key)[c].transform(
+                                lambda x: x.fillna(x.mode().iloc[0] if not x.mode().empty else x)
+                            )
 
                 elif method == "Forward Fill":
                     for c in col_selection:
-                        if freq == "Monthly":
-                            grp = df["Date"].dt.to_period("M")
-                        else:
-                            grp = df["Date"].dt.year
-                        df[c] = df.groupby(grp)[c].ffill()
+                        group_key = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
+                        df[c] = df.groupby(group_key)[c].ffill()
 
                 elif method == "Interpolate (City + Date)":
+                    df = df.sort_values(["City", "Date"])
                     for c in col_selection:
-                        df = df.sort_values(["City", "Date"])
                         df[c] = df.groupby("City")[c].apply(lambda x: x.interpolate())
 
                 elif method == "Interpolate (Date)":
@@ -218,21 +236,88 @@ def show():
                         df[c] = df[c].interpolate()
 
                 elif method == "Monthly Median":
+                    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+                    monthly_key = df["Date"].dt.to_period("M")
                     for c in col_selection:
-                        df[c] = df.groupby(df["Date"].dt.to_period("M"))[c].transform(lambda x: x.fillna(x.median()))
+                        df[c] = df.groupby(monthly_key)[c].transform(lambda x: x.fillna(x.median()))
 
-                # AFTER COUNTS
+                elif method == "Fill Using Chemical Formula (NO + NO₂ = NOx)":
+
+                    # Normalize column names
+                    rename_map = {"NO₂": "NO2", "NOₓ": "NOx", "NOX": "NOx"}
+                    df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+
+                    # Fill logical chemical relationships
+                    if {"NO", "NO2", "NOx"}.issubset(df.columns):
+
+                        # Fill NOx first
+                        mask = df["NOx"].isnull() & df["NO"].notnull() & df["NO2"].notnull()
+                        df.loc[mask, "NOx"] = df.loc[mask, "NO"] + df.loc[mask, "NO2"]
+
+                        # Fill NO
+                        mask = df["NO"].isnull() & df["NOx"].notnull() & df["NO2"].notnull()
+                        df.loc[mask, "NO"] = df.loc[mask, "NOx"] - df.loc[mask, "NO2"]
+
+                        # Fill NO2
+                        mask = df["NO2"].isnull() & df["NOx"].notnull() & df["NO"].notnull()
+                        df.loc[mask, "NO2"] = df.loc[mask, "NOx"] - df.loc[mask, "NO"]
+
+                # RESULTS SUMMARY
                 after = df[col_selection].isnull().sum().rename("After")
+                summary = pd.concat([before, after], axis=1)
 
-                result_df = pd.concat([before, after], axis=1)
+                st.success("✨ Imputation applied successfully!")
+                st.dataframe(summary, use_container_width=True)
 
                 st.session_state.current_df = df
 
-                st.success("✨ Imputation applied successfully!")
-                st.dataframe(result_df, use_container_width=True)
+    st.markdown("---")
 
-    # -----------------------------------------
-    # Current Dataset Preview
-    # -----------------------------------------
+    # ==============================================================
+    # PART 4 — DATE-BASED COLUMN CREATION
+    # ==============================================================
+    st.subheader("📆 Create Date-Based Columns (Optional)")
+
+    st.info("Use this to generate columns needed for EDA.")
+
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+    date_options = st.multiselect(
+        "Select fields to create:",
+        ["Year", "Month Number", "Month Name", "Day", "Week Number"],
+        placeholder="Choose..."
+    )
+
+    if st.button("Create Date Columns"):
+        if not date_options:
+            st.warning("⚠️ Select at least one.")
+        else:
+            if "Year" in date_options:
+                df["Year"] = df["Date"].dt.year
+
+            if "Month Number" in date_options:
+                df["Month_Number"] = df["Date"].dt.month
+
+            if "Month Name" in date_options:
+                df["Month_Name"] = df["Date"].dt.strftime("%B")
+                month_order = [
+                    "January","February","March","April","May","June",
+                    "July","August","September","October","November","December"
+                ]
+                df["Month_Name"] = pd.Categorical(df["Month_Name"], categories=month_order, ordered=True)
+
+            if "Day" in date_options:
+                df["Day"] = df["Date"].dt.day
+
+            if "Week Number" in date_options:
+                df["Week_Number"] = df["Date"].dt.isocalendar().week
+
+            st.success("🎉 Date-based columns created!")
+            st.session_state.current_df = df
+            st.experimental_rerun()
+
+    # ==============================================================
+    # CURRENT DATASET PREVIEW
+    # ==============================================================
     st.subheader("📄 Current Dataset Preview")
     st.dataframe(st.session_state.current_df, use_container_width=True)
