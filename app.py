@@ -119,14 +119,14 @@ if "eda" in qp:
 # ----------------------------------------------------------
 def link(label, page=None, eda=None, submenu=False, active=False):
     """
-    Render a clickable HTML block styled with CSS.
-    Clicking modifies the ?page= / ?eda= query params.
+    Render a clickable HTML block using onclick navigation (no new tab).
     """
 
     css = "submenu-item" if submenu else "menu-item"
     if active:
         css += " submenu-active" if submenu else "menu-active"
 
+    # Build parameters
     params = {}
     if page:
         params["page"] = page
@@ -134,19 +134,21 @@ def link(label, page=None, eda=None, submenu=False, active=False):
         params["eda"] = eda
         params["page"] = "Exploratory Data Analysis"
 
+    # Build query string
     if params:
         qp_str = "&".join([f"{k}={v}" for k, v in params.items()])
         href = f"?{qp_str}"
     else:
         href = "?"
 
+    # FINAL HTML — using div onclick (no new tab!)
     html = f"""
-    <a href="{href}" style="text-decoration:none;">
-        <div class='{css}'>{label}</div>
-    </a>
+    <div class="{css}" onclick="window.location.href='{href}'">
+        {label}
+    </div>
     """
-    st.sidebar.markdown(html, unsafe_allow_html=True)
 
+    st.sidebar.markdown(html, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
 # SIDEBAR — CLEAN, CUSTOM, PASTEL DASHBOARD MENU
