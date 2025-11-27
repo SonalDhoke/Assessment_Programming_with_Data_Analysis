@@ -110,14 +110,14 @@ def show():
         if column_to_drop:
             st.session_state.current_df.drop(columns=[column_to_drop], inplace=True)
             st.success(f"🗑️ Column '{column_to_drop}' dropped successfully!")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.warning("⚠️ Select a column.")
 
     if undo_clicked:
         st.session_state.current_df = st.session_state.original_df.copy()
         st.success("♻️ Dataset restored to original state.")
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown("---")
 
@@ -139,7 +139,7 @@ def show():
         if removed:
             col_selection.remove(removed)
             st.session_state.impute_columns = col_selection
-            st.experimental_rerun()
+            st.rerun()
 
         imputation_options = [
             "Mean",
@@ -262,7 +262,7 @@ def show():
                 st.dataframe(summary, use_container_width=True)
 
                 st.session_state.current_df = df
-                st.experimental_rerun()
+                st.rerun()
 
     st.markdown("---")
 
