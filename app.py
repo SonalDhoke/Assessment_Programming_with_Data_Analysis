@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# CSS: PASTEL DASHBOARD SIDEBAR + NESTED SUBMENU
+# CSS PASTEL DASHBOARD SIDEBAR
 # ----------------------------------------------------------
 st.markdown("""
 <style>
@@ -24,14 +24,14 @@ st.markdown("""
     font-size: 26px;
     font-weight: 700;
     color: #4A4A4A;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 /* MAIN MENU ITEM */
 .menu-item {
-    padding: 12px 16px;
-    margin: 6px 0;
-    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 8px 0;
+    border-radius: 12px;
     background: white;
     border: 1px solid #E2E6ED;
     font-size: 17px;
@@ -40,7 +40,6 @@ st.markdown("""
     transition: 0.2s;
 }
 
-/* MAIN MENU HOVER */
 .menu-item:hover {
     background: #E9F2FF;
     border-color: #A7C4FF;
@@ -55,16 +54,16 @@ st.markdown("""
 }
 
 /* SUBMENU WRAPPER */
-.submenu-wrapper {
-    margin-left: 20px;
-    margin-top: 5px;
+.submenu-box {
+    margin-left: 25px;
+    margin-top: 4px;
 }
 
 /* SUBMENU ITEM */
 .submenu-item {
-    padding: 8px 14px;
+    padding: 10px 14px;
     margin: 4px 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #FFFFFF;
     border: 1px solid #D8DFEA;
     font-size: 15px;
@@ -73,13 +72,11 @@ st.markdown("""
     transition: 0.2s;
 }
 
-/* SUBMENU HOVER */
 .submenu-item:hover {
     background: #E9F2FF !important;
     border-color: #A7C4FF !important;
 }
 
-/* ACTIVE SUBMENU */
 .submenu-active {
     background: #CDE0FF !important;
     border-color: #7CA4FF !important;
@@ -104,141 +101,133 @@ if "active_eda" not in st.session_state:
 
 
 # ----------------------------------------------------------
-# FUNCTION: MAIN MENU CLICK
+# CLICK HANDLING USING QUERY PARAMS (WORKS PERFECTLY)
 # ----------------------------------------------------------
-def click_main_page(page):
-    st.session_state.active_page = page
-    if page != "Exploratory Data Analysis":
-        st.session_state.eda_open = False
+query_params = st.query_params
+
+if "page" in query_params:
+    st.session_state.active_page = query_params["page"][0]
+
+if "eda" in query_params:
+    st.session_state.active_eda = query_params["eda"][0]
+    st.session_state.eda_open = True
+
+
+def link(label, page=None, eda=None, submenu=False, active=False):
+    """Render a clickable HTML div with query params."""
+
+    css = "submenu-item" if submenu else "menu-item"
+    if active:
+        css += " submenu-active" if submenu else "menu-active"
+
+    # Build link
+    params = {}
+    if page:
+        params["page"] = page
+    if eda:
+        params["eda"] = eda
+        params["page"] = "Exploratory Data Analysis"
+
+    url = st.experimental_get_query_params()
+
+    # Convert params into URL string
+    qp = "&".join([f"{k}={v}" for k, v in params.items()])
+    href = f"?{qp}" if qp else "?"
+
+    html = f"<a href='{href}' style='text-decoration:none;'><div class='{css}'>{label}</div></a>"
+    st.sidebar.markdown(html, unsafe_allow_html=True)
 
 
 # ----------------------------------------------------------
-# FUNCTION: SUBMENU CLICK
-# ----------------------------------------------------------
-def click_submenu(item):
-    st.session_state.active_page = "Exploratory Data Analysis"
-    st.session_state.active_eda = item
-
-
-# ----------------------------------------------------------
-# SIDEBAR UI (HTML)
+# SIDEBAR UI
 # ----------------------------------------------------------
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
-# Helper to draw a clickable div
-def clickable(label, active, key):
-    css = "menu-item"
-    if active:
-        css += " menu-active"
-    if st.sidebar.button(label, key=key):
-        return True
-    st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
-    return False
+# Main Pages
+link("🏠 Overview", page="Overview", active=st.session_state.active_page == "Overview")
+link("ℹ️ Dataset Information", page="Dataset Information", active=st.session_state.active_page == "Dataset Information")
+link("🧹 Data Cleaning", page="Data Cleaning", active=st.session_state.active_page == "Data Cleaning")
 
+# EDA (toggles submenu)
+active_eda_main = st.session_state.active_page == "Exploratory Data Analysis"
+link("📊 Exploratory Data Analysis", page="Exploratory Data Analysis", active=active_eda_main)
 
-# ---------------- MAIN MENU ITEMS ----------------
+# Show submenu when inside EDA
+if active_eda_main:
 
-if clickable("🏠 Overview", st.session_state.active_page == "Overview", "p_overview"):
-    click_main_page("Overview")
+    st.sidebar.markdown("<div class='submenu-box'>", unsafe_allow_html=True)
 
-if clickable("ℹ️ Dataset Information", st.session_state.active_page == "Dataset Information", "p_dataset"):
-    click_main_page("Dataset Information")
+    link("Distribution Analysis", eda="Distribution Analysis", submenu=True,
+         active=st.session_state.active_eda == "Distribution Analysis")
 
-if clickable("🧹 Data Cleaning", st.session_state.active_page == "Data Cleaning", "p_clean"):
-    click_main_page("Data Cleaning")
+    link("Time-Series Analysis", eda="Time-Series Analysis", submenu=True,
+         active=st.session_state.active_eda == "Time-Series Analysis")
 
-# ----------- EXPANDABLE EDA MENU -----------
-if clickable("📊 Exploratory Data Analysis", st.session_state.active_page == "Exploratory Data Analysis", "p_eda"):
-    st.session_state.active_page = "Exploratory Data Analysis"
-    st.session_state.eda_open = not st.session_state.eda_open
+    link("Correlation Matrix", eda="Correlation Matrix", submenu=True,
+         active=st.session_state.active_eda == "Correlation Matrix")
 
-# ----------- SHOW NESTED SUBMENU HERE -----------
-if st.session_state.eda_open:
+    link("AQI Category Analysis", eda="AQI Category Analysis", submenu=True,
+         active=st.session_state.active_eda == "AQI Category Analysis")
 
-    st.sidebar.markdown("<div class='submenu-wrapper'>", unsafe_allow_html=True)
+    link("Seasonal Patterns", eda="Seasonal Patterns", submenu=True,
+         active=st.session_state.active_eda == "Seasonal Patterns")
 
-    def submenu(label, key):
-        active = (st.session_state.active_eda == label)
-        css = "submenu-item submenu-active" if active else "submenu-item"
-        if st.sidebar.button(label, key=key):
-            click_submenu(label)
-        st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
-
-    submenu("Distribution Analysis", "sub1")
-    submenu("Time-Series Analysis", "sub2")
-    submenu("Correlation Matrix", "sub3")
-    submenu("AQI Category Analysis", "sub4")
-    submenu("Seasonal Patterns", "sub5")
-    submenu("Comparison Tool", "sub6")
+    link("Comparison Tool", eda="Comparison Tool", submenu=True,
+         active=st.session_state.active_eda == "Comparison Tool")
 
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------------------------------------
-# Remaining main menu items
-# ---------------------------------------------
 
-if clickable("🤖 Data Modeling and Predictions", st.session_state.active_page == "Data Modeling and Predictions", "p_model"):
-    click_main_page("Data Modeling and Predictions")
+# Remaining Pages
+link("🤖 Data Modeling and Predictions", page="Data Modeling and Predictions",
+     active=st.session_state.active_page == "Data Modeling and Predictions")
 
-if clickable("🧮 CPCB AQI Calculator", st.session_state.active_page == "CPCB AQI Calculator", "p_calc"):
-    click_main_page("CPCB AQI Calculator")
+link("🧮 CPCB AQI Calculator", page="CPCB AQI Calculator",
+     active=st.session_state.active_page == "CPCB AQI Calculator")
 
-if clickable("📚 References", st.session_state.active_page == "References", "p_ref"):
-    click_main_page("References")
+link("📚 References", page="References",
+     active=st.session_state.active_page == "References")
 
 
 # ----------------------------------------------------------
 # PAGE ROUTING
 # ----------------------------------------------------------
+pg = None
+
 page = st.session_state.active_page
-eda_page = st.session_state.active_eda
+eda = st.session_state.active_eda
 
 if page == "Overview":
     import pages.Overview as pg
-    pg.show()
 
 elif page == "Dataset Information":
     import pages.Dataset_Information as pg
-    pg.show()
 
 elif page == "Data Cleaning":
     import pages.Data_Cleaning as pg
-    pg.show()
 
 elif page == "Exploratory Data Analysis":
 
-    if eda_page == "Distribution Analysis":
+    if eda == "Distribution Analysis":
         import pages.EDA_Distribution as pg
-        pg.show()
-
-    elif eda_page == "Time-Series Analysis":
+    elif eda == "Time-Series Analysis":
         import pages.EDA_Timeseries as pg
-        pg.show()
-
-    elif eda_page == "Correlation Matrix":
+    elif eda == "Correlation Matrix":
         import pages.EDA_Correlation as pg
-        pg.show()
-
-    elif eda_page == "AQI Category Analysis":
+    elif eda == "AQI Category Analysis":
         import pages.EDA_AQI_Category as pg
-        pg.show()
-
-    elif eda_page == "Seasonal Patterns":
+    elif eda == "Seasonal Patterns":
         import pages.EDA_Seasonal as pg
-        pg.show()
-
-    elif eda_page == "Comparison Tool":
+    elif eda == "Comparison Tool":
         import pages.EDA_Comparison as pg
-        pg.show()
 
 elif page == "Data Modeling and Predictions":
     import pages.Data_Modeling_and_Predictions as pg
-    pg.show()
 
 elif page == "CPCB AQI Calculator":
     import pages.CPCB_AQI_Calculator as pg
-    pg.show()
 
 elif page == "References":
     import pages.References as pg
-    pg.show()
+
+pg.show()
