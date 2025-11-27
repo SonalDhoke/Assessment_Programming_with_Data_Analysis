@@ -306,7 +306,7 @@ def show():
 
             st.success("🎉 Date-based columns created!")
             st.session_state.current_df = df
-            st.experimental_rerun()
+            st.rerun()
 
     # ==============================================================
     # CURRENT DATASET PREVIEW
