@@ -195,12 +195,29 @@ def show():
                     for c in col_selection:
                         grp = df["Date"].dt.to_period("M") if freq == "Monthly" else df["Date"].dt.year
                         df[c] = df.groupby(grp)[c].ffill()
-
                 elif method == "Interpolate (City + Date)":
+
+                    # 1. Ensure Date is proper datetime
                     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-                    df = df.sort_values(["City", "Date"])
+                
+                    # 2. Drop rows with invalid Date temporarily
+                    if df["Date"].isnull().any():
+                        st.warning("⚠ Some rows had invalid dates and were skipped for interpolation.")
+                        df = df[df["Date"].notnull()].copy()
+                
+                    # 3. Sort for meaningful interpolation
+                    df = df.sort_values(["City", "Date"]).reset_index(drop=True)
+                
+                    # 4. Interpolate only numeric columns
                     for c in col_selection:
-                        df[c] = df.groupby("City")[c].transform(lambda x: x.interpolate())
+                        if pd.api.types.is_numeric_dtype(df[c]):
+                            df[c] = df.groupby("City")[c].transform(lambda x: x.interpolate())
+                        else:
+                            st.warning(f"Column '{c}' is not numeric and was skipped.")
+                
+                    # 5. Save back to session_state
+                    st.session_state.current_df = df.copy()
+
                         
                 elif method == "Interpolate (Date)":
                     df = df.sort_values("Date")
