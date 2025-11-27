@@ -1,21 +1,21 @@
 import streamlit as st
 
 # ----------------------------------------------------------
-# CUSTOM CSS — PASTEL BUTTONS
+# CSS — Pastel Button Cards (Clickable DIVs)
 # ----------------------------------------------------------
 st.markdown("""
 <style>
 
-.eda-btn {
-    padding: 16px;
-    margin: 8px 0;
+.eda-card {
+    padding: 18px;
+    margin: 10px 0;
     border-radius: 12px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     cursor: pointer;
     border: 2px solid transparent;
-    text-align: center;
-    transition: 0.2s;
+    text-align: left;
+    transition: 0.2s ease;
 }
 
 .dist   { background: #FFEAEA; border-color: #FFCCCC; }
@@ -25,23 +25,20 @@ st.markdown("""
 .season { background: #F5E8FF; border-color: #D6B6FF; }
 .comp   { background: #FFF0F5; border-color: #FFC4D6; }
 
-/* Hover */
-.eda-btn:hover {
-    opacity: 0.85;
-    transform: scale(1.02);
+.eda-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
 }
 
-/* Active */
-.active {
+.active-card {
     border: 3px solid #4A90E2 !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-
 # ----------------------------------------------------------
-# MAIN PAGE LOGIC
+# PAGE LOGIC
 # ----------------------------------------------------------
 def show():
     st.title("📊 Exploratory Data Analysis")
@@ -51,70 +48,55 @@ def show():
         st.warning("⚠️ Please clean dataset first.")
         return
 
-    # Store selected EDA mode
     if "eda_mode" not in st.session_state:
         st.session_state.eda_mode = "Distribution Analysis"
 
     st.markdown("### Choose an analysis module:")
 
-    # ----------------------------------------------------------
-    # BUTTON COLUMNS (HTML + form submit for clicking)
-    # ----------------------------------------------------------
-    col1, col2 = st.columns(2)
-
-    # Mapping: label → (css_class, icon)
-    eda_options = {
-        "Distribution Analysis": ("dist", "📈"),
-        "Time-Series Analysis": ("time", "🕒"),
-        "Correlation Matrix": ("corr", "🔗"),
-        "AQI Category Analysis": ("cat", "🟢"),
-        "Seasonal Patterns": ("season", "🍂"),
-        "Comparison Tool": ("comp", "🔍"),
+    # EDA options
+    options = {
+        "Distribution Analysis": ("📈", "dist"),
+        "Time-Series Analysis": ("🕒", "time"),
+        "Correlation Matrix": ("🔗", "corr"),
+        "AQI Category Analysis": ("🟢", "cat"),
+        "Seasonal Patterns": ("🍂", "season"),
+        "Comparison Tool": ("🔍", "comp"),
     }
 
-    # Render buttons
+    col1, col2 = st.columns(2)
+
+    # Render cards (clickable)
+    def render_card(label, icon, css_class):
+        active = "active-card" if st.session_state.eda_mode == label else ""
+        card_html = f"""
+            <div class="eda-card {css_class} {active}" onclick="window.location.href='?eda={label}'">
+                {icon} {label}
+            </div>
+        """
+        return card_html
+
+    import urllib.parse
+
+    # Clicking is handled through query_params (safe)
+    qp = st.query_params
+    if "eda" in qp:
+        st.session_state.eda_mode = urllib.parse.unquote(qp["eda"])
+
+    # 6 cards split into 2 columns
     with col1:
-        for label in ["Distribution Analysis", "Correlation Matrix", "Seasonal Patterns"]:
-            css, icon = eda_options[label]
-
-            is_active = "active" if st.session_state.eda_mode == label else ""
-
-            with st.form(f"form_{label}"):
-                clicked = st.form_submit_button(
-                    "",
-                    help=f"Open {label}"
-                )
-                if clicked:
-                    st.session_state.eda_mode = label
-
-                st.markdown(
-                    f"<div class='eda-btn {css} {is_active}'>{icon} {label}</div>",
-                    unsafe_allow_html=True
-                )
+        st.markdown(render_card("Distribution Analysis", "📈", "dist"), unsafe_allow_html=True)
+        st.markdown(render_card("Correlation Matrix", "🔗", "corr"), unsafe_allow_html=True)
+        st.markdown(render_card("Seasonal Patterns", "🍂", "season"), unsafe_allow_html=True)
 
     with col2:
-        for label in ["Time-Series Analysis", "AQI Category Analysis", "Comparison Tool"]:
-            css, icon = eda_options[label]
-
-            is_active = "active" if st.session_state.eda_mode == label else ""
-
-            with st.form(f"form_{label}"):
-                clicked = st.form_submit_button(
-                    "",
-                    help=f"Open {label}"
-                )
-                if clicked:
-                    st.session_state.eda_mode = label
-
-                st.markdown(
-                    f"<div class='eda-btn {css} {is_active}'>{icon} {label}</div>",
-                    unsafe_allow_html=True
-                )
+        st.markdown(render_card("Time-Series Analysis", "🕒", "time"), unsafe_allow_html=True)
+        st.markdown(render_card("AQI Category Analysis", "🟢", "cat"), unsafe_allow_html=True)
+        st.markdown(render_card("Comparison Tool", "🔍", "comp"), unsafe_allow_html=True)
 
     st.markdown("---")
 
     # ----------------------------------------------------------
-    # ROUTING TO ACTUAL EDA MODULE
+    # ROUTING TO SUBMODULE
     # ----------------------------------------------------------
     mode = st.session_state.eda_mode
 
