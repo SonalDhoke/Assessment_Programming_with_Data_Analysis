@@ -1,9 +1,9 @@
 import streamlit as st
+import pandas as pd
 import math
 
 # -------------------------------------------------
 # CPCB Breakpoints (India National AQI)
-# Source: CPCB AQI guidelines
 # -------------------------------------------------
 AQI_BREAKPOINTS = {
     "PM2.5": [
@@ -46,7 +46,7 @@ AQI_BREAKPOINTS = {
         (209, 748,301, 400),
         (749, 9999,401, 500),
     ],
-    "CO": [  # 8-hour average, mg/m3
+    "CO": [  # 8-hour avg, mg/m3
         (0.0, 1.0,   0,   50),
         (1.1, 2.0,  51, 100),
         (2.1, 10.0,101, 200),
@@ -83,7 +83,6 @@ def calculate_sub_index(pollutant, concentration):
 
     for (Clow, Chigh, Ilow, Ihigh) in AQI_BREAKPOINTS[pollutant]:
         if Clow <= concentration <= Chigh:
-            # Linear interpolation
             sub_index = ((Ihigh - Ilow) / (Chigh - Clow)) * (concentration - Clow) + Ilow
             return round(sub_index)
 
@@ -150,13 +149,11 @@ def show():
             st.error("No valid pollutant values entered to compute AQI.")
             return
 
-        # Overall AQI = max sub-index
         dominant_pollutant = max(sub_indices, key=sub_indices.get)
         overall_aqi = sub_indices[dominant_pollutant]
 
         category, emoji, msg = classify_aqi(overall_aqi)
 
-        # ---- DISPLAY RESULT ----
         st.subheader("📊 AQI Result")
 
         st.markdown(
@@ -175,7 +172,6 @@ def show():
             unsafe_allow_html=True
         )
 
-        # Show sub-index table
         st.markdown("### 🔍 Sub-indices by Pollutant")
         sub_df = (
             pd.Series(sub_indices, name="Sub-Index")
@@ -186,7 +182,7 @@ def show():
 
     st.markdown("---")
     st.info(
-        "ℹ️ Note: This calculator uses standard CPCB breakpoint tables. "
-        "For regulatory or reporting use, ensure units and averaging times (e.g. 24-hour, 8-hour) "
+        "ℹ️ Note: This calculator uses CPCB breakpoint tables. "
+        "For reporting, ensure units and averaging times (24-hr / 8-hr) "
         "match CPCB protocol."
     )
