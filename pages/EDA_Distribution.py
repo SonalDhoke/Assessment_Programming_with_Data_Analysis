@@ -4,37 +4,6 @@ import plotly.express as px
 import numpy as np
 
 # ----------------------------------------------------------
-# Lightweight KDE using ONLY NumPy
-# ----------------------------------------------------------
-def gaussian_kde_numpy(data, num_points=200):
-    """
-    Gaussian KDE using NumPy only.
-    Safe for Streamlit Cloud.
-    """
-    data = np.asarray(data)
-    data = data[~np.isnan(data)]
-
-    if len(data) < 2:
-        return None, None
-
-    xmin, xmax = data.min(), data.max()
-    x_vals = np.linspace(xmin, xmax, num_points)
-
-    # Scott's rule
-    bandwidth = 1.06 * data.std() * (len(data) ** -0.2)
-    bandwidth = max(bandwidth, 1e-8)
-
-    densities = np.zeros_like(x_vals)
-
-    for d in data:
-        densities += np.exp(-0.5 * ((x_vals - d) / bandwidth) ** 2)
-
-    densities /= (len(data) * bandwidth * np.sqrt(2 * np.pi))
-
-    return x_vals, densities
-
-
-# ----------------------------------------------------------
 # Pastel CSS
 # ----------------------------------------------------------
 st.markdown("""
@@ -123,7 +92,7 @@ def show():
     # --------------------- Time Grouping Logic -------------------
     if time_group == "Yearly":
         filtered_df["Year"] = filtered_df["Date"].dt.year.astype(str)
-        grouped_df = filtered_df.groupby("Year")[pollutant].mean().reset_index()
+        grouped_df = filtered_df.groupby(["Year"] + (["City"] if cities else []))[pollutant].mean().reset_index()
         x_col = "Year"
 
     elif time_group == "Monthly":
@@ -135,19 +104,18 @@ def show():
             "July", "August", "September", "October", "November", "December"
         ]
 
-        grouped_df = (
-            filtered_df.groupby("Month_Name")[pollutant]
-            .mean()
-            .reindex(month_order)
-            .reset_index()
-        )
+        grouped_df = filtered_df.groupby(
+            ["Month_Name"] + (["City"] if cities else [])
+        )[pollutant].mean().reset_index()
 
-        grouped_df = grouped_df.dropna().reset_index(drop=True)
+        grouped_df["Month_Name"] = pd.Categorical(grouped_df["Month_Name"], categories=month_order, ordered=True)
+        grouped_df = grouped_df.sort_values("Month_Name")
+
         x_col = "Month_Name"
 
     elif time_group == "Weekly":
         filtered_df["Week"] = filtered_df["Date"].dt.isocalendar().week.astype(int)
-        grouped_df = filtered_df.groupby("Week")[pollutant].mean().reset_index()
+        grouped_df = filtered_df.groupby(["Week"] + (["City"] if cities else []))[pollutant].mean().reset_index()
         x_col = "Week"
 
     else:
@@ -163,56 +131,51 @@ def show():
 
     col_hist, col_box = st.columns([2, 1])
 
-    # ------------ Histogram / Bar Plot ------------
+    # ----------------------------------------------------
+    # HISTOGRAM / BAR CHART (Stacked if multiple cities)
+    # ----------------------------------------------------
     with col_hist:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-        if time_group == "None":
-            fig = px.histogram(
-                grouped_df,
-                x=x_col,
-                nbins=40,
-                opacity=0.6,
-                color_discrete_sequence=["#A7C4FF"]
-            )
-            fig.update_layout(
-                title=f"Distribution of {pollutant}",
-                xaxis_title=pollutant,
-                yaxis_title="Frequency"
-            )
-
-            # ----------- KDE Curve -----------
-            show_kde = st.checkbox("Show KDE Curve", value=True)
-
-            if show_kde:
-                data = grouped_df[x_col].dropna().values
-
-                x_vals, kde_vals = gaussian_kde_numpy(data)
-
-                if x_vals is not None:
-                    y_scaled = kde_vals * max(fig.data[0].y) / max(kde_vals)
-
-                    fig.add_scatter(
-                        x=x_vals,
-                        y=y_scaled,
-                        mode='lines',
-                        name="KDE Curve",
-                        line=dict(color="#FF7F7F", width=3)
-                    )
-
-        else:
+        # Stacked bar chart only if grouped & multiple cities selected
+        if time_group != "None" and len(cities) > 1:
             fig = px.bar(
                 grouped_df,
                 x=x_col,
                 y=pollutant,
-                color_discrete_sequence=["#A7C4FF"],
+                color="City",
+                barmode="stack",
+                color_discrete_sequence=px.colors.qualitative.Pastel1,
+                title=f"{pollutant} - {time_group} (Stacked by City)"
+            )
+
+        # Normal bar chart when grouped but 1 or 0 cities
+        elif time_group != "None":
+            fig = px.bar(
+                grouped_df,
+                x=x_col,
+                y=pollutant,
+                color_discrete_sequence=["#8EC5FC"],
                 title=f"{pollutant} - {time_group} Average"
+            )
+
+        # Histogram only when NOT grouped
+        else:
+            fig = px.histogram(
+                grouped_df,
+                x=x_col,
+                nbins=40,
+                opacity=0.7,
+                color_discrete_sequence=["#A7C4FF"],
+                title=f"Distribution of {pollutant}"
             )
 
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------ Box Plot ------------
+    # ----------------------------------------------------
+    # BOX PLOT
+    # ----------------------------------------------------
     with col_box:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
@@ -228,8 +191,9 @@ def show():
         st.plotly_chart(fig2, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---------------- Summary Statistics ------------------
+    # ----------------------------------------------------
+    # SUMMARY STATISTICS
+    # ----------------------------------------------------
     st.markdown("### 📌 Summary Statistics")
-
     stats_df = grouped_df.describe().T
     st.dataframe(stats_df, use_container_width=True)
