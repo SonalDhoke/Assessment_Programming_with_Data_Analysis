@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from statsmodels.nonparametric.kde import KDEUnivariate
+import numpy as np
 
 # ----------------------------------------------------------
 # Pastel CSS
@@ -45,7 +47,8 @@ def show():
     st.header("📈 Distribution Analysis")
 
     # ------------------- Detect Pollutants --------------
-    exclude = {"City", "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc"}
+    exclude = {"City", "AQI", "AQI_Bucket", "AQI_Recalc",
+               "AQI_Bucket_Recalc", "Year", "Month_Name", "Week"}
     pollutant_cols = [
         c for c in df.columns
         if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
@@ -81,26 +84,41 @@ def show():
     if cities:
         filtered_df = filtered_df[filtered_df["City"].isin(cities)]
 
-    # --------------------- Apply Time Group Filter -------------
+    # --------------------- Time Grouping Logic -------------------
     if time_group == "Yearly":
-        filtered_df["Year"] = filtered_df["Date"].dt.year
-        filtered_df = filtered_df.groupby("Year")[pollutant].mean().reset_index()
+        filtered_df["Year"] = filtered_df["Date"].dt.year.astype(str)
+        grouped_df = filtered_df.groupby("Year")[pollutant].mean().reset_index()
         x_col = "Year"
 
     elif time_group == "Monthly":
-        filtered_df["Month"] = filtered_df["Date"].dt.to_period("M").astype(str)
-        filtered_df = filtered_df.groupby("Month")[pollutant].mean().reset_index()
-        x_col = "Month"
+        filtered_df["Month"] = filtered_df["Date"].dt.month
+        filtered_df["Month_Name"] = filtered_df["Date"].dt.strftime("%B")
+
+        month_order = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ]
+
+        grouped_df = (
+            filtered_df.groupby("Month_Name")[pollutant]
+            .mean()
+            .reindex(month_order)
+            .reset_index()
+        )
+
+        grouped_df = grouped_df.dropna().reset_index(drop=True)
+        x_col = "Month_Name"
 
     elif time_group == "Weekly":
-        filtered_df["Week"] = filtered_df["Date"].dt.isocalendar().week
-        filtered_df = filtered_df.groupby("Week")[pollutant].mean().reset_index()
+        filtered_df["Week"] = filtered_df["Date"].dt.isocalendar().week.astype(int)
+        grouped_df = filtered_df.groupby("Week")[pollutant].mean().reset_index()
         x_col = "Week"
 
-    else:  # No grouping
+    else:
+        grouped_df = filtered_df.copy()
         x_col = pollutant
 
-    if filtered_df.empty:
+    if grouped_df.empty:
         st.warning("No data available for selected filters.")
         return
 
@@ -109,29 +127,52 @@ def show():
 
     col_hist, col_box = st.columns([2, 1])
 
-    # ------------ Histogram + KDE ------------
+    # ------------ Histogram / Bar Plot ------------
     with col_hist:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
         if time_group == "None":
-            # Normal pollutant distribution
             fig = px.histogram(
-                filtered_df,
-                x=pollutant,
+                grouped_df,
+                x=x_col,
                 nbins=40,
-                opacity=0.75,
-                color_discrete_sequence=["#A7C4FF"],
-                marginal="rug"
+                opacity=0.6,
+                color_discrete_sequence=["#A7C4FF"]
             )
             fig.update_layout(
                 title=f"Distribution of {pollutant}",
                 xaxis_title=pollutant,
                 yaxis_title="Frequency"
             )
+
+            # ----------- KDE Toggle -----------
+            show_kde = st.checkbox("Show KDE Curve", value=True)
+
+            if show_kde:
+                data = grouped_df[x_col].dropna().values
+
+                if len(data) > 1:  # KDE requires >= 2 data points
+                    kde = KDEUnivariate(data)
+                    kde.fit(kernel="gau", bw="scott")
+
+                    x_vals = kde.support
+                    y_vals = kde.density
+
+                    # scale KDE to match histogram height
+                    if max(y_vals) > 0:
+                        y_scaled = y_vals * max(fig.data[0].y) / max(y_vals)
+
+                        fig.add_scatter(
+                            x=x_vals,
+                            y=y_scaled,
+                            mode='lines',
+                            name="KDE Curve",
+                            line=dict(color="#FF7F7F", width=3)
+                        )
+
         else:
-            # Distribution of grouped averages
             fig = px.bar(
-                filtered_df,
+                grouped_df,
                 x=x_col,
                 y=pollutant,
                 color_discrete_sequence=["#A7C4FF"],
@@ -145,26 +186,20 @@ def show():
     with col_box:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-        if time_group == "None":
-            fig2 = px.box(
-                filtered_df,
-                y=pollutant,
-                points="all" if outliers else False,
-                color_discrete_sequence=["#FFB3C6"]
-            )
-            fig2.update_layout(title=f"Boxplot of {pollutant}")
-        else:
-            fig2 = px.box(
-                filtered_df,
-                y=pollutant,
-                color_discrete_sequence=["#FFB3C6"],
-                title=f"{pollutant} Distribution ({time_group})"
-            )
+        fig2 = px.box(
+            grouped_df,
+            x=x_col if time_group != "None" else None,
+            y=pollutant,
+            points="all" if outliers else False,
+            color_discrete_sequence=["#FFB3C6"],
+            title=f"{pollutant} Distribution ({time_group})"
+        )
 
         st.plotly_chart(fig2, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ---------------- Summary Statistics ------------------
     st.markdown("### 📌 Summary Statistics")
-    stats_df = filtered_df.describe().T
+
+    stats_df = grouped_df.describe().T
     st.dataframe(stats_df, use_container_width=True)
