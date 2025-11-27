@@ -89,12 +89,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION WITH ICONS
+# SIDEBAR NAVIGATION WITH SUBMENU FOR EDA
 # ----------------------------------------------------------
 
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
-tabs = [
+main_tabs = [
     "🏠 Overview",
     "ℹ️ Dataset Information",
     "🧹 Data Cleaning",
@@ -104,40 +104,87 @@ tabs = [
     "📚 References"
 ]
 
-# Radio menu
-page = st.sidebar.radio("", tabs, index=0)
+# Main dropdown
+main_page = st.sidebar.radio("", main_tabs, index=0)
 
-# Clean mapping without emojis for routing
-page_clean = page.split(" ", 1)[1]
+# Clean text (remove emoji)
+main_page_clean = main_page.split(" ", 1)[1]
+
 
 # ----------------------------------------------------------
-# ROUTING
+# COLLAPSIBLE SUB-SIDEBAR FOR EDA
 # ----------------------------------------------------------
 
-if page_clean == "Overview":
+eda_choice = None
+
+if main_page_clean == "Exploratory Data Analysis":
+    with st.sidebar.expander("📊 EDA Options", expanded=True):
+
+        eda_choice = st.radio(
+            "Select EDA module:",
+            [
+                "Distribution Analysis",
+                "Time-Series Analysis",
+                "Correlation Matrix",
+                "AQI Category Analysis",
+                "Seasonal Patterns",
+                "Comparison Tool"
+            ],
+            index=0
+        )
+
+
+# ----------------------------------------------------------
+# ROUTER
+# ----------------------------------------------------------
+
+if main_page_clean == "Overview":
     import pages.Overview as pg
     pg.show()
 
-elif page_clean == "Dataset Information":
+elif main_page_clean == "Dataset Information":
     import pages.Dataset_Information as pg
     pg.show()
-    
-elif page_clean == "Data Cleaning":
+
+elif main_page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
 
-elif page_clean == "Exploratory Data Analysis":
-    import pages.Exploratory_Data_Analysis as pg
-    pg.show()
+elif main_page_clean == "Exploratory Data Analysis":
 
-elif page_clean == "Data Modeling and Predictions":
+    # Load your modular / individual EDA pages here
+    if eda_choice == "Distribution Analysis":
+        import pages.EDA_Distribution as pg
+        pg.show()
+
+    elif eda_choice == "Time-Series Analysis":
+        import pages.EDA_Timeseries as pg
+        pg.show()
+
+    elif eda_choice == "Correlation Matrix":
+        import pages.EDA_Correlation as pg
+        pg.show()
+
+    elif eda_choice == "AQI Category Analysis":
+        import pages.EDA_AQI_Category as pg
+        pg.show()
+
+    elif eda_choice == "Seasonal Patterns":
+        import pages.EDA_Seasonal as pg
+        pg.show()
+
+    elif eda_choice == "Comparison Tool":
+        import pages.EDA_Comparison as pg
+        pg.show()
+
+elif main_page_clean == "Data Modeling and Predictions":
     import pages.Data_Modeling_and_Predictions as pg
     pg.show()
 
-elif page_clean == "CPCB AQI Calculator":
+elif main_page_clean == "CPCB AQI Calculator":
     import pages.CPCB_AQI_Calculator as pg
     pg.show()
 
-elif page_clean == "References":
+elif main_page_clean == "References":
     import pages.References as pg
     pg.show()
