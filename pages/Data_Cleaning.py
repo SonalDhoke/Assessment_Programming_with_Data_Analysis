@@ -197,10 +197,11 @@ def show():
                         df[c] = df.groupby(grp)[c].ffill()
 
                 elif method == "Interpolate (City + Date)":
+                    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
                     df = df.sort_values(["City", "Date"])
                     for c in col_selection:
-                        df[c] = df.groupby("City")[c].apply(lambda x: x.interpolate())
-
+                        df[c] = df.groupby("City")[c].transform(lambda x: x.interpolate())
+                        
                 elif method == "Interpolate (Date)":
                     df = df.sort_values("Date")
                     for c in col_selection:
