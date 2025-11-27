@@ -13,7 +13,7 @@ st.markdown("""
     padding: 18px;
     border-radius: 12px;
     border: 1px solid #E0E7FF;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 }
 
 .plot-container {
@@ -26,9 +26,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ----------------------------------------------------------
-# MAIN FUNCTION
-# ----------------------------------------------------------
+
 def show():
 
     # ------------------- Load Data -----------------------
@@ -80,8 +78,6 @@ def show():
             index=0
         )
 
-    outliers = st.checkbox("Highlight Outliers", value=False)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     # --------------------- Apply City Filter -------------------
@@ -92,7 +88,10 @@ def show():
     # --------------------- Time Grouping Logic -------------------
     if time_group == "Yearly":
         filtered_df["Year"] = filtered_df["Date"].dt.year.astype(str)
-        grouped_df = filtered_df.groupby(["Year"] + (["City"] if cities else []))[pollutant].mean().reset_index()
+        grouped_df = (
+            filtered_df.groupby(["Year"] + (["City"] if cities else []))[pollutant]
+            .mean().reset_index()
+        )
         x_col = "Year"
 
     elif time_group == "Monthly":
@@ -104,18 +103,22 @@ def show():
             "July", "August", "September", "October", "November", "December"
         ]
 
-        grouped_df = filtered_df.groupby(
-            ["Month_Name"] + (["City"] if cities else [])
-        )[pollutant].mean().reset_index()
-
-        grouped_df["Month_Name"] = pd.Categorical(grouped_df["Month_Name"], categories=month_order, ordered=True)
+        grouped_df = (
+            filtered_df.groupby(["Month_Name"] + (["City"] if cities else []))[pollutant]
+            .mean().reset_index()
+        )
+        grouped_df["Month_Name"] = pd.Categorical(
+            grouped_df["Month_Name"], categories=month_order, ordered=True
+        )
         grouped_df = grouped_df.sort_values("Month_Name")
-
         x_col = "Month_Name"
 
     elif time_group == "Weekly":
         filtered_df["Week"] = filtered_df["Date"].dt.isocalendar().week.astype(int)
-        grouped_df = filtered_df.groupby(["Week"] + (["City"] if cities else []))[pollutant].mean().reset_index()
+        grouped_df = (
+            filtered_df.groupby(["Week"] + (["City"] if cities else []))[pollutant]
+            .mean().reset_index()
+        )
         x_col = "Week"
 
     else:
@@ -129,67 +132,54 @@ def show():
     # --------------------- Visualization Section -------------------
     st.markdown("### 📊 Distribution Visualizations")
 
-    col_hist, col_box = st.columns([2, 1])
+    st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
     # ----------------------------------------------------
-    # HISTOGRAM / BAR CHART (Stacked if multiple cities)
+    # MAIN CHART — Histogram or Bar (Stacked for multi-city)
     # ----------------------------------------------------
-    with col_hist:
-        st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-        # Stacked bar chart only if grouped & multiple cities selected
-        if time_group != "None" and len(cities) > 1:
-            fig = px.bar(
-                grouped_df,
-                x=x_col,
-                y=pollutant,
-                color="City",
-                barmode="stack",
-                color_discrete_sequence=px.colors.qualitative.Pastel1,
-                title=f"{pollutant} - {time_group} (Stacked by City)"
-            )
-
-        # Normal bar chart when grouped but 1 or 0 cities
-        elif time_group != "None":
-            fig = px.bar(
-                grouped_df,
-                x=x_col,
-                y=pollutant,
-                color_discrete_sequence=["#8EC5FC"],
-                title=f"{pollutant} - {time_group} Average"
-            )
-
-        # Histogram only when NOT grouped
-        else:
-            fig = px.histogram(
-                grouped_df,
-                x=x_col,
-                nbins=40,
-                opacity=0.7,
-                color_discrete_sequence=["#A7C4FF"],
-                title=f"Distribution of {pollutant}"
-            )
-
-        st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ----------------------------------------------------
-    # BOX PLOT
-    # ----------------------------------------------------
-    with col_box:
-        st.markdown('<div class="plot-container">', unsafe_allow_html=True)
-
-        fig2 = px.box(
+    # --- MULTIPLE CITIES → STACKED BAR ---
+    if time_group != "None" and len(cities) > 1:
+        fig = px.bar(
             grouped_df,
-            x=x_col if time_group != "None" else None,
+            x=x_col,
             y=pollutant,
-            points="all" if outliers else False,
-            color_discrete_sequence=["#FFB3C6"],
-            title=f"{pollutant} Distribution ({time_group})"
+            color="City",
+            barmode="stack",
+            color_discrete_sequence=px.colors.qualitative.Pastel2,
+            title=f"{pollutant} - {time_group} (Stacked by City)"
         )
 
-        st.plotly_chart(fig2, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    # --- SINGLE CITY or NO CITY with GROUPING → Simple Bar ---
+    elif time_group != "None":
+        fig = px.bar(
+            grouped_df,
+            x=x_col,
+            y=pollutant,
+            color_discrete_sequence=px.colors.qualitative.Pastel1,
+            title=f"{pollutant} - {time_group} Average"
+        )
+
+    # --- NO GROUPING → HISTOGRAM ---
+    else:
+        fig = px.histogram(
+            grouped_df,
+            x=x_col,
+            nbins=40,
+            opacity=0.8,
+            color_discrete_sequence=px.colors.qualitative.Pastel2,
+            title=f"Distribution of {pollutant}"
+        )
+
+    # Pretty layout
+    fig.update_layout(
+        xaxis_title=x_col,
+        yaxis_title="Value",
+        title_font_size=20
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ----------------------------------------------------
     # SUMMARY STATISTICS
