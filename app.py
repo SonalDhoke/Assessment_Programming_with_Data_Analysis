@@ -9,11 +9,12 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
-# PASTEL THEME + UNIQUE HOVER COLORS + ICONS
+# CUSTOM CSS (Pastel theme + Hide Streamlit Auto Pages)
 # ----------------------------------------------------------
 st.markdown("""
-    <style>
+<style>
 
+    /* 🎨 Sidebar Background */
     [data-testid="stSidebar"] {
         background-color: #F4F6FA;
     }
@@ -55,7 +56,7 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* Hover pastel colors for each tab */
+    /* Hover pastel colors */
     div[role="radiogroup"] > label:nth-child(1):hover {
         background-color: #FFE8E8 !important;
         border-color: #FFCCCC !important;
@@ -85,23 +86,8 @@ st.markdown("""
         border-color: #b7bdbe !important;
     }
 
-    </style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-
-    /* hide default Streamlit multipage menu */
-    [data-testid="stSidebarNav"] {
-        display: none !important;
-    }
-
-    /* hide the "app" title above it */
-    [data-testid="stSidebarNav"] + div {
-        display: none !important;
-    }
-
-    /* hide extra leftover blocks */
-    section[data-testid="stSidebar"] div:first-child {
+    /* 🚫 HIDE Streamlit's Auto-Generated MULTIPAGE Sidebar Menu */
+    div[data-testid="stSidebarNav"] {
         display: none !important;
     }
 
@@ -109,9 +95,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION WITH ICONS
+# SIDEBAR NAVIGATION — CUSTOM MENU ONLY
 # ----------------------------------------------------------
-
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
 tabs = [
@@ -124,16 +109,15 @@ tabs = [
     "📚 References"
 ]
 
-# Radio menu
+# Radio-style menu
 page = st.sidebar.radio("", tabs, index=0)
 
-# Clean mapping without emojis for routing
+# Clean label (remove emoji)
 page_clean = page.split(" ", 1)[1]
 
 # ----------------------------------------------------------
-# ROUTING
+# ROUTING — LOAD PAGE CONTENT
 # ----------------------------------------------------------
-
 if page_clean == "Overview":
     import pages.Overview as pg
     pg.show()
@@ -141,7 +125,7 @@ if page_clean == "Overview":
 elif page_clean == "Dataset Information":
     import pages.Dataset_Information as pg
     pg.show()
-    
+
 elif page_clean == "Data Cleaning":
     import pages.Data_Cleaning as pg
     pg.show()
