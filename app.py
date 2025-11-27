@@ -1,22 +1,21 @@
 import streamlit as st
 
-# ----------------------------------------------------------
-# PAGE CONFIGURATION
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
+# PAGE CONFIG
+# ----------------------------------------------------------------
 st.set_page_config(
     page_title="AQI Dashboard",
     layout="wide"
 )
 
-# ----------------------------------------------------------
-# PASTEL CSS THEME
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
+# CSS — PASTEL THEME WITH CLEAN DASHBOARD SIDEBAR
+# ----------------------------------------------------------------
 st.markdown("""
 <style>
-
 [data-testid="stSidebar"] {
     background: #F4F6FA;
-    padding-top: 15px;
+    padding-top: 20px;
 }
 
 /* Sidebar Title */
@@ -27,12 +26,12 @@ st.markdown("""
     margin-bottom: 18px;
 }
 
-/* Main Menu Item */
-.menu-item {
+/* Main menu block */
+.menu-block {
     padding: 12px 16px;
     margin: 6px 0;
     border-radius: 10px;
-    background: #FFFFFF;
+    background: white;
     border: 1px solid #E0E4EB;
     font-size: 17px;
     color: #344767;
@@ -40,12 +39,11 @@ st.markdown("""
     transition: all 0.2s ease;
 }
 
-.menu-item:hover {
+.menu-block:hover {
     background: #E9F2FF;
     border-color: #A7C4FF;
 }
 
-/* Active main item */
 .menu-active {
     background: #A7C4FF !important;
     border-color: #7CA4FF !important;
@@ -53,14 +51,14 @@ st.markdown("""
     font-weight: 600 !important;
 }
 
-/* Submenu container */
+/* Submenu Container */
 .submenu-box {
-    margin-left: 18px;
+    margin-left: 20px;
     margin-top: 6px;
 }
 
 /* Submenu item */
-.submenu-item {
+.submenu-block {
     padding: 9px 12px;
     margin: 4px 0;
     border-radius: 8px;
@@ -69,28 +67,26 @@ st.markdown("""
     font-size: 15px;
     color: #455A64;
     cursor: pointer;
-    transition: 0.2s;
 }
 
-.submenu-item:hover {
+.submenu-block:hover {
     background: #E9F2FF !important;
     border-color: #A7C4FF !important;
 }
 
-/* Active submenu */
 .submenu-active {
     background: #CDE0FF !important;
     border-color: #7CA4FF !important;
     color: black !important;
-    font-weight: 600;
+    font-weight: 600 !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------
+
+# ----------------------------------------------------------------
 # SESSION STATE
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Overview"
 
@@ -101,95 +97,92 @@ if "active_eda" not in st.session_state:
     st.session_state.active_eda = "Distribution Analysis"
 
 
-# ----------------------------------------------------------
-# CLICK HANDLERS
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
+# CLICK HANDLERS (NO STREAMLIT BUTTONS!)
+# ----------------------------------------------------------------
 def go_to(page):
-    """Navigate to a top-level page."""
     st.session_state.active_page = page
     if page != "Exploratory Data Analysis":
         st.session_state.eda_open = False
 
-
 def go_to_eda(subpage):
-    """Load an EDA subpage."""
     st.session_state.active_page = "Exploratory Data Analysis"
     st.session_state.eda_open = True
     st.session_state.active_eda = subpage
 
 
-# ----------------------------------------------------------
-# HTML RENDER HELPERS
-# ----------------------------------------------------------
-def menu(label, page_name):
-    """Main menu item."""
-    active = (st.session_state.active_page == page_name)
-    css = "menu-item menu-active" if active else "menu-item"
+# ----------------------------------------------------------------
+# HTML MENU RENDERER (NO BUTTONS)
+# ----------------------------------------------------------------
+def menu_item(label, page_name):
+    active = st.session_state.active_page == page_name
+    css = "menu-block menu-active" if active else "menu-block"
 
-    if st.sidebar.button(label, key=page_name, use_container_width=True):
+    if st.sidebar.markdown(
+        f"<div class='{css}'>{label}</div>",
+        unsafe_allow_html=True
+    ):
+        pass
+
+    if st.sidebar.container().button(label, key=f"click_{page_name}", help="", type="secondary"):
         go_to(page_name)
 
-    st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
 
+def submenu_item(label, eda_name):
+    active = st.session_state.active_eda == eda_name
+    css = "submenu-block submenu-active" if active else "submenu-block"
 
-def submenu(label, eda_name):
-    """EDA submenu item."""
-    active = (st.session_state.active_eda == eda_name)
-    css = "submenu-item submenu-active" if active else "submenu-item"
+    if st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True):
+        pass
 
-    if st.sidebar.button(label, key=eda_name, use_container_width=True):
+    if st.sidebar.container().button(label, key=f"eda_{eda_name}", type="secondary", help=""):
         go_to_eda(eda_name)
 
-    st.sidebar.markdown(f"<div class='{css}'>{label}</div>", unsafe_allow_html=True)
 
-
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
 # SIDEBAR UI
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
 st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
 
-# Main menu buttons
-menu("🏠 Overview", "Overview")
-menu("ℹ️ Dataset Information", "Dataset Information")
-menu("🧹 Data Cleaning", "Data Cleaning")
+menu_item("🏠 Overview", "Overview")
+menu_item("ℹ️ Dataset Information", "Dataset Information")
+menu_item("🧹 Data Cleaning", "Data Cleaning")
 
-# EDA main menu button
-if st.sidebar.button("📊 Exploratory Data Analysis", key="EDA", use_container_width=True):
-    st.session_state.active_page = "Exploratory Data Analysis"
+# EDA toggler
+eda_active = st.session_state.active_page == "Exploratory Data Analysis"
+eda_css = "menu-block menu-active" if eda_active else "menu-block"
+
+if st.sidebar.markdown(f"<div class='{eda_css}'>📊 Exploratory Data Analysis</div>", unsafe_allow_html=True):
+    pass
+
+if st.sidebar.button("📊", key="toggle_eda", help="Expand EDA submenu"):
     st.session_state.eda_open = not st.session_state.eda_open
+    st.session_state.active_page = "Exploratory Data Analysis"
 
-# Render EDA button visual
-st.sidebar.markdown(
-    f"<div class='menu-item {'menu-active' if st.session_state.active_page=='Exploratory Data Analysis' else ''}'>📊 Exploratory Data Analysis</div>",
-    unsafe_allow_html=True
-)
-
-# If EDA is open → show submenu
+# Submenu items
 if st.session_state.eda_open:
+
     st.sidebar.markdown("<div class='submenu-box'>", unsafe_allow_html=True)
 
-    submenu("Distribution Analysis", "Distribution Analysis")
-    submenu("Time-Series Analysis", "Time-Series Analysis")
-    submenu("Correlation Matrix", "Correlation Matrix")
-    submenu("AQI Category Analysis", "AQI Category Analysis")
-    submenu("Seasonal Patterns", "Seasonal Patterns")
-    submenu("Comparison Tool", "Comparison Tool")
+    submenu_item("Distribution Analysis", "Distribution Analysis")
+    submenu_item("Time-Series Analysis", "Time-Series Analysis")
+    submenu_item("Correlation Matrix", "Correlation Matrix")
+    submenu_item("AQI Category Analysis", "AQI Category Analysis")
+    submenu_item("Seasonal Patterns", "Seasonal Patterns")
+    submenu_item("Comparison Tool", "Comparison Tool")
 
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-# Remaining pages
-menu("🤖 Data Modeling and Predictions", "Data Modeling and Predictions")
-menu("🧮 CPCB AQI Calculator", "CPCB AQI Calculator")
-menu("📚 References", "References")
+menu_item("🤖 Data Modeling and Predictions", "Data Modeling and Predictions")
+menu_item("🧮 CPCB AQI Calculator", "CPCB AQI Calculator")
+menu_item("📚 References", "References")
 
 
-# ----------------------------------------------------------
+# ----------------------------------------------------------------
 # PAGE ROUTING
-# ----------------------------------------------------------
-pg = None
-
+# ----------------------------------------------------------------
 page = st.session_state.active_page
-eda = st.session_state.active_eda
+eda_page = st.session_state.active_eda
 
 if page == "Overview":
     import pages.Overview as pg
@@ -201,17 +194,17 @@ elif page == "Data Cleaning":
     import pages.Data_Cleaning as pg
 
 elif page == "Exploratory Data Analysis":
-    if eda == "Distribution Analysis":
+    if eda_page == "Distribution Analysis":
         import pages.EDA_Distribution as pg
-    elif eda == "Time-Series Analysis":
+    elif eda_page == "Time-Series Analysis":
         import pages.EDA_Timeseries as pg
-    elif eda == "Correlation Matrix":
+    elif eda_page == "Correlation Matrix":
         import pages.EDA_Correlation as pg
-    elif eda == "AQI Category Analysis":
+    elif eda_page == "AQI Category Analysis":
         import pages.EDA_AQI_Category as pg
-    elif eda == "Seasonal Patterns":
+    elif eda_page == "Seasonal Patterns":
         import pages.EDA_Seasonal as pg
-    elif eda == "Comparison Tool":
+    elif eda_page == "Comparison Tool":
         import pages.EDA_Comparison as pg
 
 elif page == "Data Modeling and Predictions":
