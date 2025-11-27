@@ -3,11 +3,10 @@ import pandas as pd
 import plotly.express as px
 
 # ----------------------------------------------------------
-# Pastel Theme CSS
+# Pastel CSS
 # ----------------------------------------------------------
 st.markdown("""
 <style>
-/* Section container */
 .section-box {
     background-color: #F8FAFF;
     padding: 18px;
@@ -16,170 +15,156 @@ st.markdown("""
     margin-bottom: 20px;
 }
 
-/* Dropdowns & widgets */
-div[data-baseweb="select"] > div {
-    background-color: #ffffff !important;
-    border-radius: 10px !important;
-}
-
-/* Plot shading */
 .plot-container {
     border-radius: 15px;
     padding: 12px;
     background: #ffffff;
     box-shadow: 0px 2px 10px rgba(0,0,0,0.05);
 }
-
-/* Title styling */
-h3 {
-    color: #344767;
-}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ----------------------------------------------------------
-# MAIN FUNCTION
-# ----------------------------------------------------------
 def show():
 
-    # Load dataframe automatically (cleaned or raw)
+    # ------------------- Load Data -----------------------
     df = None
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df
     elif "current_df" in st.session_state:
         df = st.session_state.current_df
-    elif "original_df" in st.session_state:
+    else:
         df = st.session_state.original_df
 
     if df is None:
-        st.error("Dataset not found.")
+        st.error("Dataset not available.")
         return
+
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     st.header("📈 Distribution Analysis")
-    
-    # ----------------------------------------------------------
-    # Detect pollutant columns (numeric)
-    # ----------------------------------------------------------
-    exclude = {"AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc", "City", "Date"}
-    pollutant_cols = [c for c in df.columns if c not in exclude and pd.api.types.is_numeric_dtype(df[c])]
 
-    if not pollutant_cols:
-        st.warning("No numeric pollutant columns found.")
-        return
+    # ------------------- Detect Pollutants --------------
+    exclude = {"City", "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc"}
+    pollutant_cols = [
+        c for c in df.columns
+        if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
+    ]
 
-    # ----------------------------------------------------------
-    # FILTER BOX
-    # ----------------------------------------------------------
-    with st.container():
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    # ------------------- Filter Panel ---------------------
+    st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-        with col1:
-            pollutant = st.selectbox("Select Pollutant", pollutant_cols)
+    with col1:
+        pollutant = st.selectbox("Select Pollutant", pollutant_cols)
 
-        with col2:
-            cities = st.multiselect(
-                "Filter by City (optional)",
-                sorted(df["City"].dropna().unique()),
-                default=None
-            )
-
-        with col3:
-            outliers = st.checkbox("Highlight Outliers", value=False)
-
-        # Date Range Filter
-        min_date = df["Date"].min()
-        max_date = df["Date"].max()
-
-        date_range = st.date_input(
-            "Select Date Range",
-            value=(min_date, max_date)
+    with col2:
+        cities = st.multiselect(
+            "Filter by City (optional)",
+            sorted(df["City"].dropna().unique())
         )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    with col3:
+        time_group = st.selectbox(
+            "Group Data By",
+            ["None", "Yearly", "Monthly", "Weekly"],
+            index=0
+        )
 
-    # Apply filters
+    outliers = st.checkbox("Highlight Outliers", value=False)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # --------------------- Apply City Filter -------------------
     filtered_df = df.copy()
-
     if cities:
         filtered_df = filtered_df[filtered_df["City"].isin(cities)]
 
-    start_date, end_date = date_range
-    filtered_df = filtered_df[(filtered_df["Date"] >= pd.to_datetime(start_date)) &
-                              (filtered_df["Date"] <= pd.to_datetime(end_date))]
+    # --------------------- Apply Time Group Filter -------------
+    if time_group == "Yearly":
+        filtered_df["Year"] = filtered_df["Date"].dt.year
+        filtered_df = filtered_df.groupby("Year")[pollutant].mean().reset_index()
+        x_col = "Year"
+
+    elif time_group == "Monthly":
+        filtered_df["Month"] = filtered_df["Date"].dt.to_period("M").astype(str)
+        filtered_df = filtered_df.groupby("Month")[pollutant].mean().reset_index()
+        x_col = "Month"
+
+    elif time_group == "Weekly":
+        filtered_df["Week"] = filtered_df["Date"].dt.isocalendar().week
+        filtered_df = filtered_df.groupby("Week")[pollutant].mean().reset_index()
+        x_col = "Week"
+
+    else:  # No grouping
+        x_col = pollutant
 
     if filtered_df.empty:
         st.warning("No data available for selected filters.")
         return
 
-    # ----------------------------------------------------------
-    # VISUALIZATIONS
-    # ----------------------------------------------------------
+    # --------------------- Visualization Section -------------------
     st.markdown("### 📊 Distribution Visualizations")
 
     col_hist, col_box = st.columns([2, 1])
 
-    # -------------------------------
-    # Histogram + KDE (left)
-    # -------------------------------
+    # ------------ Histogram + KDE ------------
     with col_hist:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-        fig = px.histogram(
-            filtered_df,
-            x=pollutant,
-            nbins=50,
-            marginal="rug",
-            opacity=0.75,
-            color_discrete_sequence=["#A7C4FF"],
-        )
-
-        fig.update_layout(
-            title=f"Distribution of {pollutant}",
-            xaxis_title=pollutant,
-            yaxis_title="Count",
-            showlegend=False
-        )
+        if time_group == "None":
+            # Normal pollutant distribution
+            fig = px.histogram(
+                filtered_df,
+                x=pollutant,
+                nbins=40,
+                opacity=0.75,
+                color_discrete_sequence=["#A7C4FF"],
+                marginal="rug"
+            )
+            fig.update_layout(
+                title=f"Distribution of {pollutant}",
+                xaxis_title=pollutant,
+                yaxis_title="Frequency"
+            )
+        else:
+            # Distribution of grouped averages
+            fig = px.bar(
+                filtered_df,
+                x=x_col,
+                y=pollutant,
+                color_discrete_sequence=["#A7C4FF"],
+                title=f"{pollutant} - {time_group} Average"
+            )
 
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # -------------------------------
-    # Boxplot (right)
-    # -------------------------------
+    # ------------ Box Plot ------------
     with col_box:
         st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-        fig2 = px.box(
-            filtered_df,
-            y=pollutant,
-            points="all" if outliers else False,
-            color_discrete_sequence=["#FFB3C6"],
-        )
-
-        fig2.update_layout(
-            title=f"Boxplot of {pollutant}",
-            yaxis_title=pollutant,
-            showlegend=False
-        )
+        if time_group == "None":
+            fig2 = px.box(
+                filtered_df,
+                y=pollutant,
+                points="all" if outliers else False,
+                color_discrete_sequence=["#FFB3C6"]
+            )
+            fig2.update_layout(title=f"Boxplot of {pollutant}")
+        else:
+            fig2 = px.box(
+                filtered_df,
+                y=pollutant,
+                color_discrete_sequence=["#FFB3C6"],
+                title=f"{pollutant} Distribution ({time_group})"
+            )
 
         st.plotly_chart(fig2, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # ----------------------------------------------------------
-    # Summary Stats
-    # ----------------------------------------------------------
+    # ---------------- Summary Statistics ------------------
     st.markdown("### 📌 Summary Statistics")
-
-    stats_df = filtered_df[pollutant].describe().to_frame().T
+    stats_df = filtered_df.describe().T
     st.dataframe(stats_df, use_container_width=True)
-
-    # ----------------------------------------------------------
-    # Show Raw Data
-    # ----------------------------------------------------------
-    with st.expander("🔎 View Raw Filtered Data"):
-        st.dataframe(filtered_df, use_container_width=True)
