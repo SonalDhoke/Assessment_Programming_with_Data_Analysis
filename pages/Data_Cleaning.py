@@ -262,15 +262,39 @@ def show():
     
     st.info("""
     After filling missing pollutant values, recalculate AQI and AQI category.
-    This will create two new columns:
+    This will create:
     - **AQI_Recalc**
     - **AQI_Bucket_Recalc**
     """)
     
-    if st.button("Recalculate AQI"):
+    # -----------------------------------------------
+    # AUTO-DETECT ALL POLLUTANTS (numeric columns)
+    # -----------------------------------------------
+    exclude_cols = ["City", "Date", "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc"]
+    
+    aqi_pollutants = [
+        col for col in df.columns
+        if col not in exclude_cols and pd.api.types.is_numeric_dtype(df[col])
+    ]
+    
+    # Pollutants that exist in data
+    pollutants_present = aqi_pollutants
+    
+    # Missing values check
+    remaining_missing = df[pollutants_present].isnull().sum().sum()
+    
+    aqi_ready = (remaining_missing == 0)
+    
+    if not aqi_ready:
+        st.warning("⚠️ Please fill ALL pollutant missing values before recalculating AQI.")
+    
+    # Disable button if missing values still exist
+    btn = st.button("Recalculate AQI", disabled=not aqi_ready)
+    
+    if btn:
         df = st.session_state.current_df
     
-        # ---------------- AQI BREAKPOINTS (CPCB) ----------------
+        # ---------------- AQI BREAKPOINTS ----------------
         breakpoints = {
             "PM2.5": [(0,30,0,50),(31,60,51,100),(61,90,101,200),(91,120,201,300),(121,250,301,400),(251,500,401,500)],
             "PM10": [(0,50,0,50),(51,100,51,100),(101,250,101,200),(251,350,201,300),(351,430,301,400),(431,600,401,500)],
@@ -282,7 +306,7 @@ def show():
     
         pollutants_available = [p for p in breakpoints.keys() if p in df.columns]
     
-        # -------------- Function to compute sub-index --------------
+        # ---------------- Sub-Index Formula ----------------
         def compute_subindex(value, bp_list):
             if pd.isna(value):
                 return None
@@ -291,15 +315,17 @@ def show():
                     return ((Ihigh - Ilow) / (Chigh - Clow)) * (value - Clow) + Ilow
             return None
     
-        # -------------- Compute AQI --------------
+        # Compute subindex for all pollutants
         subindex_df = pd.DataFrame()
-    
         for pollutant in pollutants_available:
-            subindex_df[pollutant] = df[pollutant].apply(lambda x: compute_subindex(x, breakpoints[pollutant]))
+            subindex_df[pollutant] = df[pollutant].apply(
+                lambda x: compute_subindex(x, breakpoints[pollutant])
+            )
     
+        # AQI = max sub-index
         df["AQI_Recalc"] = subindex_df.max(axis=1)
     
-        # -------------- Category Labels --------------
+        # ---------------- Category Calculation ----------------
         def aqi_bucket(aqi):
             if pd.isna(aqi): return None
             if aqi <= 50: return "Good"
@@ -311,13 +337,10 @@ def show():
     
         df["AQI_Bucket_Recalc"] = df["AQI_Recalc"].apply(aqi_bucket)
     
-        st.success("✅ AQI successfully recalculated!")
-    
+        st.success("🌟 AQI recalculated successfully!")
         st.dataframe(df[["AQI_Recalc", "AQI_Bucket_Recalc"]], use_container_width=True)
     
-        # update session_state
         st.session_state.current_df = df
-    
 
     # ==============================================================
     # PART 4 — DATE COLUMN CREATION
