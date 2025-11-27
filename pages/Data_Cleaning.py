@@ -207,7 +207,17 @@ def show():
                         df[c] = df[c].interpolate()
 
                 elif method == "Monthly Median":
+
+                    # 🚑 FIX: Ensure Date is truly datetime before using dt accessor
+                    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+                
+                    # 🚑 FIX: Drop rows where Date became NaT (only temporarily during imputation)
+                    if df["Date"].isnull().any():
+                        st.warning("⚠️ Some rows had invalid dates and were skipped during monthly imputation.")
+                        df = df[df["Date"].notnull()]
+                
                     monthly_key = df["Date"].dt.to_period("M")
+                
                     for c in col_selection:
                         df[c] = df.groupby(monthly_key)[c].transform(lambda x: x.fillna(x.median()))
 
