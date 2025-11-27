@@ -4,9 +4,22 @@ def show():
     st.title("📊 Exploratory Data Analysis")
 
     # Use cleaned data if available
-    df = st.session_state.get("cleaned_df")
+    # Load dataset priority:
+    # 1. cleaned_df (after cleaning)
+    # 2. current_df (while cleaning)
+    # 3. original_df (raw data)
+    df = None
+    
+    if "cleaned_df" in st.session_state:
+        df = st.session_state.cleaned_df
+    elif "current_df" in st.session_state:
+        df = st.session_state.current_df
+    elif "original_df" in st.session_state:
+        df = st.session_state.original_df
+    
+    # Final fallback check
     if df is None:
-        st.warning("⚠️ Please clean the dataset first on the **Data Cleaning** page.")
+        st.error("No dataset found. Please load data from the Dataset Information page.")
         return
 
     # ----------------------------------------------------------
