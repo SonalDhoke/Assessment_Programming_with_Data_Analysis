@@ -127,85 +127,75 @@ def show():
     # ==============================================================
     # PART 3 — IMPUTATION
     # ==============================================================
-    with st.expander("🧩 Impute Missing Values", expanded=False):
+   # ==============================================================
+# PART 3 — IMPUTATION
+# ==============================================================
+with st.expander("🧩 Impute Missing Values", expanded=False):
 
-        st.write("Select columns and choose a fill method:")
+    st.write("Select columns and choose a fill method:")
 
-        # ---- CHEMICAL GROUPS ----
-        chemical_groups = {
-            "Nitrogen Oxides (NO, NO₂, NOx)": ["NO", "NO2", "NOx", "NO₂", "NOₓ"],
-        }
+    # ---- MULTISELECT ----
+    col_selection = st.multiselect(
+        "Select columns to impute:",
+        options=df.columns,
+        placeholder="Choose columns...",
+        key="impute_columns"
+    )
 
-        chem_choice = st.selectbox(
-            "Select chemical group (optional):",
-            ["None"] + list(chemical_groups.keys()),
-            index=0,
-        )
+    # ---- CHIP RENDER ----
+    removed = render_chips(col_selection, key_prefix="chip")
+    if removed:
+        col_selection.remove(removed)
+        st.session_state.impute_columns = col_selection
+        st.experimental_rerun()
 
-        # ---- MULTISELECT ----
-        col_selection = st.multiselect(
-            "Select columns to impute:",
-            options=df.columns,
-            placeholder="Choose columns...",
-            key="impute_columns"
-        )
+    # ---- IMPUTATION METHODS ----
+    imputation_options = [
+        "Mean",
+        "Median",
+        "Mode",
+        "Forward Fill",
+        "Interpolate (City + Date)",
+        "Interpolate (Date)",
+        "Monthly Median"
+    ]
 
-        # Auto-add chemical columns
-        if chem_choice != "None":
-            for col in chemical_groups[chem_choice]:
-                if col in df.columns and col not in col_selection:
-                    col_selection.append(col)
-            st.session_state.impute_columns = col_selection
+    # Automatically add chemical formula option
+    nitrogen_cols = {"NO", "NO2", "NOx", "NO₂", "NOₓ"}
 
-        # ---- CHIP RENDER ----
-        removed = render_chips(col_selection, key_prefix="chip")
-        if removed:
-            col_selection.remove(removed)
-            st.session_state.impute_columns = col_selection
-            st.experimental_rerun()
+    if any(col in nitrogen_cols for col in col_selection):
+        imputation_options.append("Fill Using Chemical Formula (NO + NO₂ = NOx)")
 
-        # ---- IMPUTATION METHODS ----
-        method = st.selectbox(
-            "Choose imputation method:",
-            [
-                "Mean",
-                "Median",
-                "Mode",
-                "Forward Fill",
-                "Interpolate (City + Date)",
-                "Interpolate (Date)",
-                "Monthly Median",
-                "Fill Using Chemical Formula (NO + NO₂ = NOx)"
-            ]
-        )
+    method = st.selectbox("Choose imputation method:", imputation_options)
 
-        freq_needed = method in ["Mean", "Median", "Mode", "Forward Fill"]
-        freq = st.selectbox("Frequency:", ["Monthly", "Yearly"]) if freq_needed else None
+    freq_needed = method in ["Mean", "Median", "Mode", "Forward Fill"]
+    freq = st.selectbox("Frequency:", ["Monthly", "Yearly"]) if freq_needed else None
 
-        # ---- CHEMICAL FORMULA INFO ----
-        if any(c in col_selection for c in ["NO", "NO2", "NOx", "NO₂"]):
-            st.info("""
-                💡 **Chemical Tip:**  
-                NOx ≈ NO + NO₂  
-                Missing values can be estimated using:
-                • NOx = NO + NO₂  
-                • NO = NOx − NO₂  
-                • NO₂ = NOx − NO  
-            """)
+    # ---- CHEMICAL FORMULA INFO ----
+    if any(c in col_selection for c in nitrogen_cols):
+        st.info("""
+            💡 **Chemical Tip:**  
+            NOx ≈ NO + NO₂  
+            Missing values can be estimated using:
+            • NOx = NO + NO₂  
+            • NO = NOx − NO₂  
+            • NO₂ = NOx − NO  
+        """)
 
-        # ======================================================
-        # APPLY IMPUTATION
-        # ======================================================
-        if st.button("Apply Imputation"):
-            if not col_selection:
-                st.warning("⚠️ Select at least one column.")
-            else:
+    # ======================================================
+    # APPLY IMPUTATION
+    # ======================================================
+    if st.button("Apply Imputation"):
+        if not col_selection:
+            st.warning("⚠️ Select at least one column.")
+        else:
 
-                # Ensure datetime safety
-                df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+            # Ensure datetime safety
+            df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-                before = df[col_selection].isnull().sum().rename("Before")
+            before = df[col_selection].isnull().sum().rename("Before")
 
+           
                 # ---------------------- IMPUTATION METHODS ---------------------
 
                 if method in ["Mean", "Median", "Mode"]:
