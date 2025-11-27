@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # ----------------------------------------------------------
-# Pastel CSS
+# Pastel Theme CSS
 # ----------------------------------------------------------
 st.markdown("""
 <style>
@@ -12,7 +12,7 @@ st.markdown("""
     padding: 18px;
     border-radius: 12px;
     border: 1px solid #E0E7FF;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .plot-container {
@@ -34,7 +34,7 @@ h3 {
 # ----------------------------------------------------------
 def show():
 
-    # Load dataset
+    # Load dataframe
     df = None
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df
@@ -44,17 +44,21 @@ def show():
         df = st.session_state.original_df
 
     if df is None:
-        st.error("Dataset not available.")
+        st.error("Dataset not found.")
         return
 
-    st.header("🔗 Correlation Matrix Analysis")
+    st.header("🕒 Time-Series Analysis")
 
     # ----------------------------------------------------------
-    # Detect numeric pollutant columns
+    # Detect Numeric Pollutants
     # ----------------------------------------------------------
     exclude = {"AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc", "City"}
-    num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c not in exclude]
+    pollutant_cols = [
+        c for c in df.columns
+        if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
+    ]
 
+    # Ensure Date is datetime
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     # ----------------------------------------------------------
@@ -65,10 +69,7 @@ def show():
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        method = st.selectbox(
-            "Correlation Method",
-            ["pearson", "spearman", "kendall"]
-        )
+        pollutant = st.selectbox("Select Pollutant", pollutant_cols)
 
     with col2:
         cities = st.multiselect(
@@ -77,19 +78,26 @@ def show():
         )
 
     with col3:
-        scale_min = st.number_input("Color Scale Min", -1.0, 1.0, -1.0)
-        scale_max = st.number_input("Color Scale Max", -1.0, 1.0, 1.0)
+        roll_window = st.selectbox(
+            "Rolling Average Window",
+            [None, 7, 14, 30],
+            format_func=lambda x: "No Smoothing" if x is None else f"{x}-Day Average"
+        )
 
-    # Date range filter
+    show_trend = st.checkbox("Show Linear Trendline", value=False)
+
     min_date = df["Date"].min()
     max_date = df["Date"].max()
 
-    date_range = st.date_input("Select Date Range", (min_date, max_date))
+    date_range = st.date_input(
+        "Select Date Range",
+        value=(min_date, max_date)
+    )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # APPLY FILTERS
+    # FILTER DATA
     # ----------------------------------------------------------
     filtered_df = df.copy()
 
@@ -107,52 +115,89 @@ def show():
         return
 
     # ----------------------------------------------------------
-    # COMPUTE CORRELATION MATRIX
+    # APPLY ROLLING AVERAGE
     # ----------------------------------------------------------
-    corr_matrix = filtered_df[num_cols].corr(method=method)
+    if roll_window is not None:
+        filtered_df = filtered_df.sort_values("Date")
+        filtered_df[f"{pollutant}_smoothed"] = (
+            filtered_df[pollutant].rolling(roll_window, min_periods=1).mean()
+        )
+        plot_col = f"{pollutant}_smoothed"
+    else:
+        plot_col = pollutant
 
     # ----------------------------------------------------------
-    # PLOT HEATMAP (pastel theme)
+    # TIME-SERIES PLOT
     # ----------------------------------------------------------
-    st.markdown("### 🎨 Correlation Heatmap")
+    st.markdown("### 📈 Time-Series Plot")
+
     st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-    fig = px.imshow(
-        corr_matrix,
-        color_continuous_scale=px.colors.sequential.Blues,
-        zmin=scale_min,
-        zmax=scale_max,
-        text_auto=True,
-        aspect="auto",
+    fig = px.line(
+        filtered_df,
+        x="Date",
+        y=plot_col,
+        color="City" if cities else None,
+        markers=True,
+        color_discrete_sequence=px.colors.qualitative.Pastel,
     )
 
+    title_suffix = f" ({roll_window}-Day Avg)" if roll_window else ""
     fig.update_layout(
-        height=550,
-        xaxis_title="Pollutants",
-        yaxis_title="Pollutants",
-        coloraxis_colorbar=dict(
-            title="Correlation",
-            ticks="outside"
-        )
+        title=f"{pollutant}{title_suffix} Over Time",
+        xaxis_title="Date",
+        yaxis_title=pollutant,
+        hovermode="x unified"
     )
+
+    if show_trend:
+        fig.add_traces(
+            px.scatter(filtered_df, x="Date", y=plot_col, trendline="ols").data[1:]
+        )
 
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # DOWNLOAD MATRIX
+    # MULTI-POLLUTANT OVERLAY
     # ----------------------------------------------------------
-    st.markdown("### 📥 Download Correlation Matrix")
-    st.download_button(
-        "Download as CSV",
-        corr_matrix.to_csv().encode("utf-8"),
-        file_name="correlation_matrix.csv",
-        mime="text/csv"
-    )
+    st.markdown("### 🔀 Compare Multiple Pollutants")
+
+    with st.expander("Show Comparison Chart"):
+        compare_cols = st.multiselect(
+            "Select pollutants to compare",
+            pollutant_cols,
+            default=[pollutant]
+        )
+
+        if compare_cols:
+            comp_df = filtered_df.copy()
+            comp_df = comp_df.melt(
+                id_vars=["Date", "City"],
+                value_vars=compare_cols,
+                var_name="Pollutant",
+                value_name="Value"
+            )
+
+            fig2 = px.line(
+                comp_df,
+                x="Date",
+                y="Value",
+                color="Pollutant",
+                markers=True,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+
+            fig2.update_layout(
+                title="Multi-Pollutant Comparison Over Time",
+                hovermode="x unified"
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
 
     # ----------------------------------------------------------
-    # RAW DATA VIEWER
+    # RAW DATA VIEW
     # ----------------------------------------------------------
-    with st.expander("📄 View Filtered Dataset"):
+    with st.expander("📄 View Filtered Data"):
         st.dataframe(filtered_df, use_container_width=True)
