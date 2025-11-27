@@ -262,7 +262,7 @@ def show():
                 st.dataframe(summary, use_container_width=True)
 
                 st.session_state.current_df = df
-                st.rerun()
+               
 
     st.markdown("---")
 
