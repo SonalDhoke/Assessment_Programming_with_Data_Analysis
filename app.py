@@ -87,6 +87,26 @@ st.markdown("""
 
     </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+
+    /* hide default Streamlit multipage menu */
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+
+    /* hide the "app" title above it */
+    [data-testid="stSidebarNav"] + div {
+        display: none !important;
+    }
+
+    /* hide extra leftover blocks */
+    section[data-testid="stSidebar"] div:first-child {
+        display: none !important;
+    }
+
+</style>
+""", unsafe_allow_html=True)
 
 # ----------------------------------------------------------
 # SIDEBAR NAVIGATION WITH ICONS
