@@ -46,12 +46,12 @@ def show():
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     # ----------------------------------------------------------
-    # DETECT POLLUTANTS — CLEAN (ONLY pollutant columns)
+    # CLEAN POLLUTANT DETECTION (ONLY pollutants)
     # ----------------------------------------------------------
     exclude_cols = {
         "City", "Date",
         "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc",
-        "Year", "Month", "Month_Name", "Day", "Week_Number"
+        "Year", "Month", "Month_Name", "Day", "Week_Number" , "Month_Number"
     }
 
     pollutant_cols = [
@@ -64,7 +64,7 @@ def show():
     # ----------------------------------------------------------
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    # POLLUTANT DROPDOWN (ONLY pollutants + ALL)
+    # POLLUTANT DROPDOWN (only pollutants + ALL)
     pollutant_options = ["ALL"] + pollutant_cols
 
     selected_pollutants = st.multiselect(
@@ -85,7 +85,7 @@ def show():
         default=None
     )
 
-    # PERIOD DROPDOWN
+    # PERIOD
     period = st.selectbox(
         "Select Time Basis for Pie Chart",
         ["Yearly", "Monthly"]
@@ -106,40 +106,11 @@ def show():
         return
 
     # ----------------------------------------------------------
-    # MULTI-POLLUTANT LINE CHART
+    # REMOVED: Time series graph
     # ----------------------------------------------------------
-    st.subheader("📈 Pollutant Comparison Over Time")
-
-    st.markdown('<div class="plot-container">', unsafe_allow_html=True)
-
-    if pollutants:
-        melted = filtered_df.melt(
-            id_vars=["Date", "City"],
-            value_vars=pollutants,
-            var_name="Pollutant",
-            value_name="Value"
-        )
-
-        fig_time = px.line(
-            melted,
-            x="Date",
-            y="Value",
-            color="Pollutant",
-            line_group="City" if cities else None,
-            hover_data=["City"],
-            markers=True,
-            color_discrete_sequence=px.colors.qualitative.Pastel,
-            title="Pollutant Levels Over Time"
-        )
-
-        st.plotly_chart(fig_time, use_container_width=True)
-    else:
-        st.info("Select pollutants to show comparison.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # PIE CHARTS — YEARLY / MONTHLY
+    # PIE CHART SECTION — FIXED
     # ----------------------------------------------------------
     st.subheader("🥧 Pollutant Distribution (Pie Charts)")
 
@@ -152,23 +123,28 @@ def show():
 
             city_df = filtered_df[filtered_df["City"] == city].copy()
 
-            # TEMP columns (not affecting dropdown)
+            # GROUPING
             if period == "Yearly":
-                city_df["__group__"] = city_df["Date"].dt.year
-                agg_df = city_df.groupby("__group__")[pollutants].mean()
+                grouped = city_df.groupby(city_df["Date"].dt.year)[pollutants].mean()
+                grouped.index.name = "Group"
                 title_suffix = "Yearly Average"
 
             else:  # Monthly
-                city_df["__group__"] = city_df["Date"].dt.strftime("%B")
-                agg_df = city_df.groupby("__group__")[pollutants].mean()
+                grouped = city_df.groupby(city_df["Date"].dt.strftime("%B"))[pollutants].mean()
+                grouped.index.name = "Group"
                 title_suffix = "Monthly Average"
 
-            melted = agg_df.reset_index().melt(
-                id_vars="__group__",
+            # Melt
+            melted = grouped.reset_index().melt(
+                id_vars="Group",
                 value_vars=pollutants,
                 var_name="Pollutant",
                 value_name="Value"
             )
+
+            if melted["Value"].isna().all():
+                st.info(f"No valid pollutant data available for {city}.")
+                continue
 
             fig = px.pie(
                 melted,
@@ -187,7 +163,7 @@ def show():
     st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # CITY-WISE BAR CHART
+    # CITY-WISE AVERAGE BAR CHART
     # ----------------------------------------------------------
     st.subheader("🏙 Average Pollutant Comparison (City-wise)")
 
