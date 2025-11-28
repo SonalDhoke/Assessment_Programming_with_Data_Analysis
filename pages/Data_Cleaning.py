@@ -64,7 +64,7 @@ def show():
         heatmap_data = df.isnull()
         fig = px.imshow(
             heatmap_data.T,
-            color_continuous_scale=["#1f77b4", "#ff4136"],
+            color_continuous_scale=["#F28C28", "#AA336A"],
             aspect="auto",
             labels=dict(x="Row", y="Column", color="Missing"),
         )
@@ -123,15 +123,15 @@ def show():
         st.write("Select columns and choose a fill method:")
 
         # ---- Only show columns that still have NaN ----
-        # missing_cols = df.columns[df.isnull().sum() > 0].tolist()
-        # Columns that still have missing values (EXCLUDING AQI columns)
         excluded_cols = ["AQI", "AQI_Bucket", "AQI_Bucket_Recalc", "AQI_Recalc"]
-        
+
         missing_cols = [
             col for col in df.columns
             if col not in excluded_cols and df[col].isnull().sum() > 0
         ]
 
+        # Add ALL option
+        display_cols = ["ALL"] + missing_cols
 
         if not missing_cols:
             st.success("🎉 All columns have been cleaned! No missing values left.")
@@ -139,12 +139,17 @@ def show():
         else:
             col_selection = st.multiselect(
                 "Select columns to impute:",
-                options=missing_cols,
+                options=display_cols,
                 placeholder="Choose columns...",
                 key="impute_columns"
             )
 
-        # Chips for removal
+        # IF ALL SELECTED → Auto-select all missing-value columns
+        if "ALL" in col_selection:
+            col_selection = missing_cols.copy()
+            st.info("🔄 ALL selected — all pollutant columns with missing values will be imputed.")
+
+        # Chips
         removed = render_chips(col_selection, key_prefix="chip")
         if removed:
             col_selection.remove(removed)
@@ -162,23 +167,19 @@ def show():
             "Monthly Median"
         ]
 
-        # Add chemical formula option if relevant
         nitrogen_cols = {"NO", "NO2", "NOx", "NO₂", "NOₓ"}
         if any(c in col_selection for c in nitrogen_cols):
             imputation_options.append("Fill Using Chemical Formula (NO + NO₂ = NOx)")
 
         method = st.selectbox("Choose imputation method:", imputation_options)
 
-        # Frequency for some methods
         freq_needed = method in ["Mean", "Median", "Mode", "Forward Fill"]
         freq = st.selectbox("Frequency:", ["Monthly", "Yearly"]) if freq_needed else None
 
-        # ---- Chemical Tip ----
         if any(c in col_selection for c in nitrogen_cols):
             st.info("""
                 💡 **Chemical Tip:**  
                 NOx = NO + NO₂  
-                Missing values can be computed as:
                 • NOx = NO + NO₂  
                 • NO = NOx − NO₂  
                 • NO₂ = NOx − NO  
@@ -216,8 +217,7 @@ def show():
                 elif method == "Interpolate (City + Date)":
                     df = df.sort_values(["City", "Date"]).reset_index(drop=True)
                     for c in col_selection:
-                        if pd.api.types.is_numeric_dtype(df[c]):
-                            df[c] = df.groupby("City")[c].transform(lambda x: x.interpolate())
+                        df[c] = df.groupby("City")[c].transform(lambda x: x.interpolate())
 
                 elif method == "Interpolate (Date)":
                     df = df.sort_values("Date")
@@ -225,7 +225,6 @@ def show():
                         df[c] = df[c].interpolate()
 
                 elif method == "Monthly Median":
-                    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
                     monthly_key = df["Date"].dt.to_period("M")
                     for c in col_selection:
                         df[c] = df.groupby(monthly_key)[c].transform(lambda x: x.fillna(x.median()))
@@ -254,47 +253,38 @@ def show():
                 st.session_state.current_df = df
 
     st.markdown("---")
+
     # ==============================================================
-    # PART — RECALCULATE AQI AFTER IMPUTATION
+    # PART — RECALCULATE AQI
     # ==============================================================
-    st.markdown("---")
     st.subheader("🌬️ Recalculate AQI Based on Updated Pollutant Values")
     
     st.info("""
-    After filling missing pollutant values, recalculate AQI and AQI category.
-    This will create:
+    After filling missing pollutant values:
     - **AQI_Recalc**
     - **AQI_Bucket_Recalc**
+    will be generated.
     """)
-    
-    # -----------------------------------------------
-    # AUTO-DETECT ALL POLLUTANTS (numeric columns)
-    # -----------------------------------------------
+
     exclude_cols = ["City", "Date", "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc"]
-    
+
     aqi_pollutants = [
         col for col in df.columns
         if col not in exclude_cols and pd.api.types.is_numeric_dtype(df[col])
     ]
-    
-    # Pollutants that exist in data
+
     pollutants_present = aqi_pollutants
-    
-    # Missing values check
     remaining_missing = df[pollutants_present].isnull().sum().sum()
-    
     aqi_ready = (remaining_missing == 0)
-    
+
     if not aqi_ready:
         st.warning("⚠️ Please fill ALL pollutant missing values before recalculating AQI.")
-    
-    # Disable button if missing values still exist
+
     btn = st.button("Recalculate AQI", disabled=not aqi_ready)
-    
+
     if btn:
         df = st.session_state.current_df
-    
-        # ---------------- AQI BREAKPOINTS ----------------
+
         breakpoints = {
             "PM2.5": [(0,30,0,50),(31,60,51,100),(61,90,101,200),(91,120,201,300),(121,250,301,400),(251,500,401,500)],
             "PM10": [(0,50,0,50),(51,100,51,100),(101,250,101,200),(251,350,201,300),(351,430,301,400),(431,600,401,500)],
@@ -303,10 +293,9 @@ def show():
             "CO":   [(0,1,0,50),(1.1,2,51,100),(2.1,10,101,200),(10.1,17,201,300),(17.1,34,301,400),(34.1,50,401,500)],
             "O3":   [(0,50,0,50),(51,100,51,100),(101,168,101,200),(169,208,201,300),(209,748,301,400),(749,1000,401,500)],
         }
-    
+
         pollutants_available = [p for p in breakpoints.keys() if p in df.columns]
-    
-        # ---------------- Sub-Index Formula ----------------
+
         def compute_subindex(value, bp_list):
             if pd.isna(value):
                 return None
@@ -314,18 +303,15 @@ def show():
                 if Clow <= value <= Chigh:
                     return ((Ihigh - Ilow) / (Chigh - Clow)) * (value - Clow) + Ilow
             return None
-    
-        # Compute subindex for all pollutants
+
         subindex_df = pd.DataFrame()
         for pollutant in pollutants_available:
             subindex_df[pollutant] = df[pollutant].apply(
                 lambda x: compute_subindex(x, breakpoints[pollutant])
             )
-    
-        # AQI = max sub-index
+
         df["AQI_Recalc"] = subindex_df.max(axis=1)
-    
-        # ---------------- Category Calculation ----------------
+
         def aqi_bucket(aqi):
             if pd.isna(aqi): return None
             if aqi <= 50: return "Good"
@@ -334,16 +320,16 @@ def show():
             if aqi <= 300: return "Poor"
             if aqi <= 400: return "Very Poor"
             return "Severe"
-    
+
         df["AQI_Bucket_Recalc"] = df["AQI_Recalc"].apply(aqi_bucket)
-    
+
         st.success("🌟 AQI recalculated successfully!")
         st.dataframe(df[["AQI_Recalc", "AQI_Bucket_Recalc"]], use_container_width=True)
-    
+
         st.session_state.current_df = df
 
     # ==============================================================
-    # PART 4 — DATE COLUMN CREATION
+    # PART 4 — DATE COLUMNS
     # ==============================================================
     st.subheader("📆 Create Date-Based Columns (Optional)")
 
@@ -380,7 +366,7 @@ def show():
     st.dataframe(st.session_state.current_df, use_container_width=True)
 
     # ==============================================================
-    # FINAL CLEANING CONFIRMATION
+    # FINALIZE CLEANING
     # ==============================================================
     st.markdown("---")
     st.subheader("🛠️ Finalize Cleaning")
@@ -389,42 +375,30 @@ def show():
     After all missing value treatment and corrections are done,
     you can either **confirm and save** this cleaned dataset or **reset everything**.
     """)
-    
+
     c1, c2 = st.columns(2)
-    
+
     with c1:
         confirm = st.button("✔ Confirm & Save Clean Dataset", use_container_width=True)
-    
+
     with c2:
         reset_all = st.button("🔄 Reset All Changes", use_container_width=True)
-    
-    # -----------------------------
-    # CONFIRM & SAVE CLEANED DATASET
-    # -----------------------------
+
     if confirm:
-    
-        # Save permanently for EDA pages
         st.session_state.cleaned_df = st.session_state.current_df.copy()
-    
+
         st.success("""
         🎉 **Dataset successfully cleaned and saved!**  
         You may now navigate to the **EDA page** to explore insights  
         using the fully processed dataset.
         """)
-    
         st.balloons()
-    
-    
-    # -----------------------------
-    # RESET EVERYTHING
-    # -----------------------------
+
     if reset_all:
         st.session_state.current_df = st.session_state.original_df.copy()
-    
-        # Optional: remove cleaned_df if exists
+        
         if "cleaned_df" in st.session_state:
             del st.session_state.cleaned_df
-    
+
         st.success("🔄 All changes have been reset! Dataset restored to original state.")
         st.rerun()
-    
