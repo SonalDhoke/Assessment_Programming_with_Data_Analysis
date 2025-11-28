@@ -47,15 +47,34 @@ def show():
         st.error("Dataset not available.")
         return
 
-    st.header("🔗 Correlation Matrix Analysis")
+    st.header("🔗 Correlation Matrix (Pollutants Only)")
 
     # ----------------------------------------------------------
-    # Detect numeric pollutant columns
+    # Identify only pollutant columns (numeric)
     # ----------------------------------------------------------
-    exclude = {"AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc", "City"}
-    num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and c not in exclude]
+    exclude = {
+        "City",
+        "Date",
+        "AQI",
+        "AQI_Bucket",
+        "AQI_Recalc",
+        "AQI_Bucket_Recalc",
+        "Year",
+        "Month",
+        "Month_Number",
+        "Month_Name",
+        "Day",
+        "Week_Number"
+    }
 
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    pollutant_cols = [
+        c for c in df.columns
+        if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
+    ]
+
+    if len(pollutant_cols) < 2:
+        st.error("Not enough pollutant columns for correlation.")
+        return
 
     # ----------------------------------------------------------
     # FILTER PANEL
@@ -67,7 +86,7 @@ def show():
     with col1:
         method = st.selectbox(
             "Correlation Method",
-            ["pearson", "spearman"]   # ❌ KENDALL REMOVED
+            ["pearson", "spearman"]  # Kendall removed
         )
 
     with col2:
@@ -76,48 +95,34 @@ def show():
             sorted(df["City"].dropna().unique())
         )
 
-    # ❌ Removed scale_min & scale_max inputs
-
-    # Date range filter
-    min_date = df["Date"].min()
-    max_date = df["Date"].max()
-
-    date_range = st.date_input("Select Date Range", (min_date, max_date))
-
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # APPLY FILTERS
+    # Apply city filter
     # ----------------------------------------------------------
     filtered_df = df.copy()
 
     if cities:
         filtered_df = filtered_df[filtered_df["City"].isin(cities)]
 
-    start, end = date_range
-    filtered_df = filtered_df[
-        (filtered_df["Date"] >= pd.to_datetime(start)) &
-        (filtered_df["Date"] <= pd.to_datetime(end))
-    ]
-
     if filtered_df.empty:
-        st.warning("No data available for selected filters.")
+        st.warning("No data found for selected cities.")
         return
 
     # ----------------------------------------------------------
-    # COMPUTE CORRELATION MATRIX
+    # Compute Correlation Matrix (Pollutants Only)
     # ----------------------------------------------------------
-    corr_matrix = filtered_df[num_cols].corr(method=method)
+    corr_matrix = filtered_df[pollutant_cols].corr(method=method)
 
     # ----------------------------------------------------------
-    # PLOT HEATMAP (pastel theme)
+    # PLOT HEATMAP
     # ----------------------------------------------------------
-    st.markdown("### 🎨 Correlation Heatmap")
+    st.markdown("### 🎨 Correlation Heatmap (Pollutants Only)")
     st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
     fig = px.imshow(
         corr_matrix,
-        color_continuous_scale=px.colors.sequential.Blues,   # default kept
+        color_continuous_scale=px.colors.sequential.Blues,
         text_auto=True,
         aspect="auto",
     )
@@ -137,18 +142,18 @@ def show():
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # DOWNLOAD MATRIX
+    # DOWNLOAD CSV
     # ----------------------------------------------------------
     st.markdown("### 📥 Download Correlation Matrix")
     st.download_button(
         "Download as CSV",
         corr_matrix.to_csv().encode("utf-8"),
-        file_name="correlation_matrix.csv",
+        file_name="pollutant_correlation_matrix.csv",
         mime="text/csv"
     )
 
     # ----------------------------------------------------------
-    # RAW DATA VIEWER
+    # RAW DATA VIEW (Optional)
     # ----------------------------------------------------------
-    with st.expander("📄 View Filtered Dataset"):
-        st.dataframe(filtered_df, use_container_width=True)
+    with st.expander("📄 View Data Used for Correlation"):
+        st.dataframe(filtered_df[pollutant_cols], use_container_width=True)
