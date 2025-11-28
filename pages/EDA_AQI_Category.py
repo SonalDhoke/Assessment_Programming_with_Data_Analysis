@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # --------------------------------------------------------------
-# CSS for page layout
+# CSS for layout & pastel-dark theme
 # --------------------------------------------------------------
 st.markdown("""
 <style>
@@ -17,10 +17,10 @@ st.markdown("""
 }
 .plot-container {
     background: #FFFFFF;
-    padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    margin-bottom: 25px;
+    padding: 16px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -31,7 +31,7 @@ st.markdown("""
 # --------------------------------------------------------------
 def show():
 
-    # ---------------- Load dataset ----------------
+    # Load dataset
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df.copy()
     elif "current_df" in st.session_state:
@@ -40,15 +40,15 @@ def show():
         df = st.session_state.original_df.copy()
 
     if df is None:
-        st.error("Dataset missing.")
+        st.error("Dataset unavailable.")
         return
 
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    st.header("🌫️ AQI Category Comparison (Before vs After)")
+    st.header("🌫️ AQI Category Analysis (Before vs After Recalculation)")
 
     # --------------------------------------------------------------
-    # FILTERS SECTION
+    # FILTERS
     # --------------------------------------------------------------
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
@@ -62,52 +62,47 @@ def show():
 
     with col2:
         time_group = st.selectbox(
-            "Choose Time Granularity",
+            "Time Grouping",
             ["Yearly", "Monthly", "Weekly"]
         )
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---------------- Apply Filters ----------------
-    filtered = df.copy()
+    # Apply city filter
+    data = df.copy()
     if cities:
-        filtered = filtered[filtered["City"].isin(cities)]
+        data = data[data["City"].isin(cities)]
 
-    if filtered.empty:
-        st.warning("No data found for selected filters.")
+    if data.empty:
+        st.warning("No data available for selected cities.")
         return
 
     # --------------------------------------------------------------
-    # 1) COMBINED BAR CHART (Before vs After)
+    # 1️⃣ COMBINED BAR CHART (Before vs After)
     # --------------------------------------------------------------
     st.subheader("📊 AQI Category Distribution (Before vs After)")
 
     st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
     # BEFORE
-    before_df = (
-        filtered["AQI_Bucket"]
-        .value_counts()
-        .reset_index()
-        .rename(columns={"index": "Category", "AQI_Bucket": "Count"})
-    )
+    before_df = data["AQI_Bucket"].value_counts().reset_index()
+    before_df.columns = ["Category", "Count"]
     before_df["Type"] = "Before"
 
     # AFTER
-    after_df = (
-        filtered["AQI_Bucket_Recalc"]
-        .value_counts()
-        .reset_index()
-        .rename(columns={"index": "Category", "AQI_Bucket_Recalc": "Count"})
-    )
+    after_df = data["AQI_Bucket_Recalc"].value_counts().reset_index()
+    after_df.columns = ["Category", "Count"]
     after_df["Type"] = "After"
 
     # Merge
-    combined = pd.concat([before_df, after_df])
+    combined = pd.concat([before_df, after_df], ignore_index=True)
 
-    # Category order
-    cat_order = ["Good", "Satisfactory", "Moderate", "Poor", "Very Poor", "Severe"]
-    combined["Category"] = pd.Categorical(combined["Category"], cat_order)
+    category_order = [
+        "Good", "Satisfactory", "Moderate",
+        "Poor", "Very Poor", "Severe"
+    ]
+
+    combined["Category"] = pd.Categorical(combined["Category"], category_order)
 
     fig_bar = px.bar(
         combined,
@@ -121,7 +116,7 @@ def show():
 
     fig_bar.update_layout(
         xaxis_title="AQI Category",
-        yaxis_title="Record Count",
+        yaxis_title="Total Records",
         bargap=0.25,
         template="simple_white"
     )
@@ -130,15 +125,15 @@ def show():
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --------------------------------------------------------------
-    # 2) LINE CHART WITH CATEGORY SHADING
+    # 2️⃣ LINE CHART WITH AQI CATEGORY SHADING
     # --------------------------------------------------------------
-    st.subheader("📈 AQI Trends With Category Shading")
+    st.subheader("📈 AQI Trend Comparison (Before vs After)")
 
     st.markdown('<div class="plot-container">', unsafe_allow_html=True)
 
-    temp = filtered.copy()
+    temp = data.copy()
 
-    # ---------------- Time Grouping ----------------
+    # ---------------- Time grouping logic ----------------
     if time_group == "Yearly":
         temp["Period"] = temp["Date"].dt.year
         x_label = "Year"
@@ -153,13 +148,11 @@ def show():
         temp["Period"] = temp["Date"].dt.isocalendar().week.astype(int)
         x_label = "Week"
 
-    # Aggregate AQI & AQI_Recalc
+    # Aggregate
     agg = temp.groupby("Period")[["AQI", "AQI_Recalc"]].mean().reset_index()
-
-    # Percent Difference
     agg["Percent_Diff"] = ((agg["AQI_Recalc"] - agg["AQI"]) / agg["AQI"]) * 100
 
-    # Correct Category Function
+    # Category function
     def categorize(aqi):
         if aqi <= 50: return "Good"
         elif aqi <= 100: return "Satisfactory"
@@ -171,7 +164,7 @@ def show():
     agg["AQI_Category"] = agg["AQI"].apply(categorize)
     agg["AQI_Recalc_Category"] = agg["AQI_Recalc"].apply(categorize)
 
-    # AQI Shades
+    # AQI SHADING BANDS
     bands = [
         ("Good", 0, 50, "rgba(0, 176, 80, 0.18)"),
         ("Satisfactory", 51, 100, "rgba(255, 255, 0, 0.18)"),
@@ -183,20 +176,21 @@ def show():
 
     fig = go.Figure()
 
-    # ---------------- Background Shading ----------------
+    # ------------------- SHADING -------------------
+    x_min = agg["Period"].min()
+    x_max = agg["Period"].max()
+
     for name, y0, y1, color in bands:
         fig.add_shape(
             type="rect",
-            x0=agg["Period"].min(),
-            x1=agg["Period"].max(),
-            y0=y0,
-            y1=y1,
+            x0=x_min, x1=x_max,
+            y0=y0, y1=y1,
             fillcolor=color,
             line=dict(width=0),
             layer="below"
         )
 
-    # ---------------- Lines ----------------
+    # ------------------- LINES ---------------------
     colors = ["#4E79A7", "#F28E2B"]
     lines = ["AQI", "AQI_Recalc"]
 
@@ -214,12 +208,12 @@ def show():
             hovertemplate=
                 "<b>%{fullData.name}</b><br>" +
                 f"{x_label}: %{x}<br>" +
-                "AQI Value: %{y:.1f}<br>" +
-                "Percent Difference: %{customdata[0]:.2f}%<br>" +
-                "Category: <b>%{customdata[1]}</b><extra></extra>"
+                "AQI: %{y:.1f}<br>" +
+                "Δ %: %{customdata[0]:.2f}%<br>" +
+                "Category: %{customdata[1]}<extra></extra>"
         ))
 
-    # ---------------- X-axis labels for month names ----------------
+    # ---------------- Month name labels ----------------
     if time_group == "Monthly":
         fig.update_xaxes(
             tickmode="array",
@@ -231,13 +225,11 @@ def show():
     fig.update_layout(
         template="simple_white",
         xaxis_title=x_label,
-        yaxis_title="AQI Level",
-        legend_title="Lines",
-        height=500,
-        margin=dict(t=60),
+        yaxis_title="AQI",
+        height=520,
+        legend_title="AQI Lines",
         plot_bgcolor="#FFFFFF"
     )
 
     st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
