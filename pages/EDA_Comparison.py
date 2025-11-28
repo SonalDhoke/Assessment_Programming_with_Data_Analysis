@@ -55,7 +55,6 @@ def show():
         if pd.api.types.is_numeric_dtype(df[c]) and c not in exclude
     ]
 
-
     # ----------------------------------------------------------
     # FILTER PANEL
     # ----------------------------------------------------------
@@ -77,11 +76,12 @@ def show():
             default=None
         )
 
-    min_date, max_date = df["Date"].min(), df["Date"].max()
-
-    date_range = st.date_input(
-        "Date Range",
-        (min_date, max_date)
+    # ----------------------
+    # 🆕 Period dropdown
+    # ----------------------
+    period = st.selectbox(
+        "Select Time Basis for Pie Chart",
+        ["Yearly", "Monthly"]
     )
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -90,12 +90,6 @@ def show():
     # APPLY FILTERS
     # ----------------------------------------------------------
     filtered_df = df.copy()
-
-    s, e = date_range
-    filtered_df = filtered_df[
-        (filtered_df["Date"] >= pd.to_datetime(s)) &
-        (filtered_df["Date"] <= pd.to_datetime(e))
-    ]
 
     if cities:
         filtered_df = filtered_df[filtered_df["City"].isin(cities)]
@@ -139,7 +133,59 @@ def show():
     st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # CITY-WISE BAR CHART COMPARISON
+    # NEW PIE CHART SECTION
+    # ----------------------------------------------------------
+    st.subheader("🥧 Pollutant Distribution (Pie Charts)")
+
+    st.markdown('<div class="plot-container">', unsafe_allow_html=True)
+
+    if pollutants and cities:
+
+        for city in cities:
+            st.markdown(f"### 🌆 {city}")
+
+            city_df = filtered_df[filtered_df["City"] == city].copy()
+
+            # Create Year / Month columns
+            city_df["Year"] = city_df["Date"].dt.year
+            city_df["Month"] = city_df["Date"].dt.strftime("%B")
+
+            # Aggregate
+            if period == "Yearly":
+                agg_df = city_df.groupby("Year")[pollutants].mean()
+                title_suffix = "Yearly Average"
+            else:
+                agg_df = city_df.groupby("Month")[pollutants].mean()
+                title_suffix = "Monthly Average"
+
+            # Melt for plotting
+            melted = agg_df.reset_index().melt(
+                id_vars=agg_df.index.name,
+                value_vars=pollutants,
+                var_name="Pollutant",
+                value_name="Value"
+            )
+
+            # One pie chart per pollutant distribution
+            fig = px.pie(
+                melted,
+                names="Pollutant",
+                values="Value",
+                title=f"{city} — {title_suffix} Pollutant Share",
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            st.markdown("---")
+
+    else:
+        st.info("Select pollutants and cities to generate pie charts.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ----------------------------------------------------------
+    # CITY-WISE BAR CHART
     # ----------------------------------------------------------
     st.subheader("🏙 Average Pollutant Comparison (City-wise)")
 
@@ -167,13 +213,10 @@ def show():
 
         st.plotly_chart(fig_city, use_container_width=True)
 
-    else:
-        st.info("Select both cities and pollutants to compare.")
-
     st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # POLLUTANT-WISE BAR COMPARISON
+    # OVERALL POLLUTANT BAR
     # ----------------------------------------------------------
     st.subheader("🔢 Pollutant-wise Comparison (Overall)")
 
