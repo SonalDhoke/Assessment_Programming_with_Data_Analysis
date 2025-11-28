@@ -47,7 +47,7 @@ def show():
 
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    st.header("📉 Time-Series Analysis")
+    st.header("📉 Time-Series Analysis (Normalized Option)")
 
     # ---------------- Detect pollutant columns ----------------
     exclude = {"City", "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_Recalc"}
@@ -83,6 +83,9 @@ def show():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # Normalization toggle
+    normalize = st.checkbox("🔄 Normalize (Min-Max: 0 → 1)", value=True)
+
     # ---------------- Validation ----------------
     if not pollutants:
         st.warning("Select at least one pollutant.")
@@ -112,74 +115,94 @@ def show():
         group_var = "Date"
 
     # =====================================================
-    # CASE LOGIC FOR VISUALIZATION
+    # NORMALIZATION LOGIC
+    # =====================================================
+    if normalize:
+
+        for pollutant in pollutants:
+            min_val = df[pollutant].min()
+            max_val = df[pollutant].max()
+            df[f"norm_{pollutant}"] = (df[pollutant] - min_val) / (max_val - min_val)
+
+        y_cols = [f"norm_{p}" for p in pollutants]
+        y_label_suffix = " (Normalized)"
+    else:
+        y_cols = pollutants
+        y_label_suffix = ""
+
+    # =====================================================
+    # SMART VISUALIZATION LOGIC
     # =====================================================
 
-    # CASE 1: ONE pollutant + MULTIPLE cities => 1 combined line chart
+    # CASE 1: Single Pollutant + Multiple Cities → One chart
     if len(pollutants) == 1 and len(cities) > 1:
 
         pollutant = pollutants[0]
-        st.subheader(f"📊 {pollutant} — Comparison Across Cities")
+        y_col = y_cols[0]
+
+        st.subheader(f"📊 {pollutant}{y_label_suffix} — Across Cities")
 
         fig = px.line(
             df,
             x=group_var,
-            y=pollutant,
+            y=y_col,
             color="City",
             markers=False,
             color_discrete_sequence=DARK_COLORS,
-            title=f"{pollutant} Over Time"
+            title=f"{pollutant}{y_label_suffix} Over Time"
         )
 
         fig.update_layout(
             xaxis_title="Time",
-            yaxis_title=pollutant
+            yaxis_title=pollutant + y_label_suffix
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # CASE 2: MULTIPLE pollutants + ONE city => 1 combined line chart
+    # CASE 2: Multiple Pollutants + Single City → One chart
     elif len(cities) == 1 and len(pollutants) > 1:
 
         city = cities[0]
-        st.subheader(f"📊 {city} — Multiple Pollutants Trend")
+        st.subheader(f"📊 {city} — Multiple Pollutants{y_label_suffix}")
 
         fig = px.line(
             df[df["City"] == city],
             x=group_var,
-            y=pollutants,
+            y=y_cols,
             markers=False,
             color_discrete_sequence=DARK_COLORS,
-            title=f"Air Pollutants Over Time — {city}"
+            title=f"Pollutant Trends{y_label_suffix} — {city}"
         )
 
         fig.update_layout(
             xaxis_title="Time",
-            yaxis_title="Pollutant Level"
+            yaxis_title="Pollutant Level" + y_label_suffix
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # CASE 3: MULTIPLE pollutants + MULTIPLE cities => MULTIPLE GRAPHS (by pollutant)
+    # CASE 3: Multiple Pollutants + Multiple Cities → Show all lines together (normalized makes it clean)
     else:
-        st.subheader("📊 Multiple Pollutants × Multiple Cities")
 
-        for pollutant in pollutants:
-            st.markdown(f"### 🌈 {pollutant}")
+        st.subheader(f"📊 Combined View (Normalized: {normalize})")
+
+        for pollutant, y_col in zip(pollutants, y_cols):
+
+            st.markdown(f"### 🌈 {pollutant}{y_label_suffix}")
 
             fig = px.line(
                 df,
                 x=group_var,
-                y=pollutant,
+                y=y_col,
                 color="City",
                 markers=False,
                 color_discrete_sequence=DARK_COLORS,
-                title=f"{pollutant} Over Time — Selected Cities"
+                title=f"{pollutant}{y_label_suffix} — All Selected Cities"
             )
 
             fig.update_layout(
                 xaxis_title="Time",
-                yaxis_title=pollutant
+                yaxis_title=pollutant + y_label_suffix
             )
 
             st.markdown('<div class="plot-box">', unsafe_allow_html=True)
