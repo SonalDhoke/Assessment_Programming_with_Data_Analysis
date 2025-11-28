@@ -30,7 +30,6 @@ def show():
     # ----------------------------------------------------------
     # LOAD DATA
     # ----------------------------------------------------------
-    df = None
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df
     elif "current_df" in st.session_state:
@@ -47,12 +46,17 @@ def show():
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
     # ----------------------------------------------------------
-    # DETECT POLLUTANTS
+    # DETECT POLLUTANTS — CLEAN (ONLY pollutant columns)
     # ----------------------------------------------------------
-    exclude = {"AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc", "City"}
+    exclude_cols = {
+        "City", "Date",
+        "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc",
+        "Year", "Month", "Month_Name", "Day", "Week_Number"
+    }
+
     pollutant_cols = [
         c for c in df.columns
-        if pd.api.types.is_numeric_dtype(df[c]) and c not in exclude
+        if pd.api.types.is_numeric_dtype(df[c]) and c not in exclude_cols
     ]
 
     # ----------------------------------------------------------
@@ -60,25 +64,28 @@ def show():
     # ----------------------------------------------------------
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    # POLLUTANT DROPDOWN (ONLY pollutants + ALL)
+    pollutant_options = ["ALL"] + pollutant_cols
 
-    with col1:
-        pollutants = st.multiselect(
-            "Select Pollutants to Compare",
-            pollutant_cols,
-            default=pollutant_cols[:2]
-        )
+    selected_pollutants = st.multiselect(
+        "Select Pollutants to Compare",
+        pollutant_options,
+        default=None
+    )
 
-    with col2:
-        cities = st.multiselect(
-            "Select Cities to Compare",
-            sorted(df["City"].dropna().unique()),
-            default=None
-        )
+    if "ALL" in selected_pollutants:
+        pollutants = pollutant_cols
+    else:
+        pollutants = selected_pollutants
 
-    # ----------------------
-    # 🆕 Period dropdown
-    # ----------------------
+    # CITY DROPDOWN
+    cities = st.multiselect(
+        "Select Cities to Compare",
+        sorted(df["City"].dropna().unique()),
+        default=None
+    )
+
+    # PERIOD DROPDOWN
     period = st.selectbox(
         "Select Time Basis for Pie Chart",
         ["Yearly", "Monthly"]
@@ -126,14 +133,13 @@ def show():
         )
 
         st.plotly_chart(fig_time, use_container_width=True)
-
     else:
         st.info("Select pollutants to show comparison.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     # ----------------------------------------------------------
-    # NEW PIE CHART SECTION
+    # PIE CHARTS — YEARLY / MONTHLY
     # ----------------------------------------------------------
     st.subheader("🥧 Pollutant Distribution (Pie Charts)")
 
@@ -146,27 +152,24 @@ def show():
 
             city_df = filtered_df[filtered_df["City"] == city].copy()
 
-            # Create Year / Month columns
-            city_df["Year"] = city_df["Date"].dt.year
-            city_df["Month"] = city_df["Date"].dt.strftime("%B")
-
-            # Aggregate
+            # TEMP columns (not affecting dropdown)
             if period == "Yearly":
-                agg_df = city_df.groupby("Year")[pollutants].mean()
+                city_df["__group__"] = city_df["Date"].dt.year
+                agg_df = city_df.groupby("__group__")[pollutants].mean()
                 title_suffix = "Yearly Average"
-            else:
-                agg_df = city_df.groupby("Month")[pollutants].mean()
+
+            else:  # Monthly
+                city_df["__group__"] = city_df["Date"].dt.strftime("%B")
+                agg_df = city_df.groupby("__group__")[pollutants].mean()
                 title_suffix = "Monthly Average"
 
-            # Melt for plotting
             melted = agg_df.reset_index().melt(
-                id_vars=agg_df.index.name,
+                id_vars="__group__",
                 value_vars=pollutants,
                 var_name="Pollutant",
                 value_name="Value"
             )
 
-            # One pie chart per pollutant distribution
             fig = px.pie(
                 melted,
                 names="Pollutant",
@@ -176,7 +179,6 @@ def show():
             )
 
             st.plotly_chart(fig, use_container_width=True)
-
             st.markdown("---")
 
     else:
