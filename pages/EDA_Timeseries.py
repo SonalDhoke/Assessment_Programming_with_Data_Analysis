@@ -3,6 +3,11 @@ import pandas as pd
 import plotly.express as px
 
 # ------------------------------------------
+# Darker Professional Colors
+# ------------------------------------------
+DARK_COLORS = px.colors.qualitative.Plotly
+
+# ------------------------------------------
 # Pastel CSS
 # ------------------------------------------
 st.markdown("""
@@ -100,7 +105,7 @@ def show():
         group_var = "Year"
 
     elif time_group == "Weekly":
-        df["Week"] = df["Date"].dt.strftime("%Y-W%U")
+        df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
         group_var = "Week"
 
     else:
@@ -122,7 +127,7 @@ def show():
             y=pollutant,
             color="City",
             markers=False,
-            color_discrete_sequence=px.colors.qualitative.Pastel2,
+            color_discrete_sequence=DARK_COLORS,
             title=f"{pollutant} Over Time"
         )
 
@@ -144,7 +149,7 @@ def show():
             x=group_var,
             y=pollutants,
             markers=False,
-            color_discrete_sequence=px.colors.qualitative.Pastel1,
+            color_discrete_sequence=DARK_COLORS,
             title=f"Air Pollutants Over Time — {city}"
         )
 
@@ -155,7 +160,7 @@ def show():
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # CASE 3: MULTIPLE pollutants + MULTIPLE cities => SMALL MULTIPLES by pollutant
+    # CASE 3: MULTIPLE pollutants + MULTIPLE cities => MULTIPLE GRAPHS (by pollutant)
     else:
         st.subheader("📊 Multiple Pollutants × Multiple Cities")
 
@@ -168,8 +173,8 @@ def show():
                 y=pollutant,
                 color="City",
                 markers=False,
-                color_discrete_sequence=px.colors.qualitative.Pastel1,
-                title=f"{pollutant} Over Time — All Selected Cities"
+                color_discrete_sequence=DARK_COLORS,
+                title=f"{pollutant} Over Time — Selected Cities"
             )
 
             fig.update_layout(
