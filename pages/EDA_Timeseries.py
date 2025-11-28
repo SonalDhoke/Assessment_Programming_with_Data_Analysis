@@ -15,30 +15,20 @@ st.markdown("""
     margin-bottom: 22px;
 }
 
-.grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 22px;
-    margin-top: 15px;
-}
-
 .plot-box {
     background: #ffffff;
     padding: 14px;
     border-radius: 12px;
     box-shadow: 0px 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 24px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ------------------------------------------
-# MAIN FUNCTION
-# ------------------------------------------
 def show():
 
     # ------------------- Load Data -----------------------
-    df = None
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df
     elif "current_df" in st.session_state:
@@ -56,70 +46,142 @@ def show():
 
     # ---------------- Detect pollutant columns ----------------
     exclude = {"City", "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_Recalc"}
-    pollutants = [
-        col for col in df.columns
-        if col not in exclude and pd.api.types.is_numeric_dtype(df[col])
+    pollutant_cols = [
+        c for c in df.columns
+        if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
     ]
 
-    # ---------------- Sidebar Filters ----------------
+    # ---------------- Filter Panel ----------------
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
+
+    col1, col2, col3 = st.columns(3)
 
     with col1:
-        pollutant = st.selectbox("Select Pollutant", pollutants)
+        pollutants = st.multiselect(
+            "Select Pollutants (max 3)",
+            pollutant_cols,
+            max_selections=3
+        )
 
     with col2:
         cities = st.multiselect(
-            "Select Cities",
-            sorted(df["City"].dropna().unique()),
-            default=None
+            "Select Cities (max 3)",
+            sorted(df["City"].unique()),
+            max_selections=3
+        )
+
+    with col3:
+        time_group = st.selectbox(
+            "Group Data By",
+            ["None", "Monthly", "Yearly", "Weekly"]
         )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # If no cities selected → auto-select all
-    if not cities:
-        cities = sorted(df["City"].dropna().unique())
+    # ---------------- Validation ----------------
+    if not pollutants:
+        st.warning("Select at least one pollutant.")
+        return
 
-    # Filter dataset
+    if not cities:
+        st.warning("Select at least one city.")
+        return
+
+    # ---------------- Apply City Filter ----------------
     df = df[df["City"].isin(cities)]
 
-    # ----------------- GRID LAYOUT ------------------
+    # ---------------- Time Grouping ----------------
+    if time_group == "Monthly":
+        df["Month"] = df["Date"].dt.strftime("%Y-%m")
+        group_var = "Month"
 
-    st.markdown("### 📊 City-wise Time Series (Grid Layout)")
-    st.markdown('<div class="grid-container">', unsafe_allow_html=True)
+    elif time_group == "Yearly":
+        df["Year"] = df["Date"].dt.year.astype(str)
+        group_var = "Year"
 
-    # Pastel line colors
-    pastel_colors = px.colors.qualitative.Pastel2
+    elif time_group == "Weekly":
+        df["Week"] = df["Date"].dt.strftime("%Y-W%U")
+        group_var = "Week"
 
-    # Create charts
-    for i, city in enumerate(cities):
-        city_df = df[df["City"] == city].sort_values("Date")
+    else:
+        group_var = "Date"
 
-        st.markdown('<div class="plot-box">', unsafe_allow_html=True)
+    # =====================================================
+    # CASE LOGIC FOR VISUALIZATION
+    # =====================================================
+
+    # CASE 1: ONE pollutant + MULTIPLE cities => 1 combined line chart
+    if len(pollutants) == 1 and len(cities) > 1:
+
+        pollutant = pollutants[0]
+        st.subheader(f"📊 {pollutant} — Comparison Across Cities")
 
         fig = px.line(
-            city_df,
-            x="Date",
+            df,
+            x=group_var,
             y=pollutant,
-            title=f"{city} — {pollutant} Trend",
+            color="City",
             markers=False,
-            color_discrete_sequence=[pastel_colors[i % len(pastel_colors)]]
+            color_discrete_sequence=px.colors.qualitative.Pastel2,
+            title=f"{pollutant} Over Time"
         )
 
         fig.update_layout(
-            xaxis_title="",
-            yaxis_title="",
-            title_font_size=16,
-            margin=dict(l=10, r=10, t=40, b=10)
+            xaxis_title="Time",
+            yaxis_title=pollutant
         )
 
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)  # close grid
+    # CASE 2: MULTIPLE pollutants + ONE city => 1 combined line chart
+    elif len(cities) == 1 and len(pollutants) > 1:
 
-    # ---------------- Summary Statistics ------------------
-    st.markdown("### 📌 Summary Statistics (All Selected Cities Combined)")
-    summary = df.groupby("City")[pollutant].describe()
+        city = cities[0]
+        st.subheader(f"📊 {city} — Multiple Pollutants Trend")
+
+        fig = px.line(
+            df[df["City"] == city],
+            x=group_var,
+            y=pollutants,
+            markers=False,
+            color_discrete_sequence=px.colors.qualitative.Pastel1,
+            title=f"Air Pollutants Over Time — {city}"
+        )
+
+        fig.update_layout(
+            xaxis_title="Time",
+            yaxis_title="Pollutant Level"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # CASE 3: MULTIPLE pollutants + MULTIPLE cities => SMALL MULTIPLES by pollutant
+    else:
+        st.subheader("📊 Multiple Pollutants × Multiple Cities")
+
+        for pollutant in pollutants:
+            st.markdown(f"### 🌈 {pollutant}")
+
+            fig = px.line(
+                df,
+                x=group_var,
+                y=pollutant,
+                color="City",
+                markers=False,
+                color_discrete_sequence=px.colors.qualitative.Pastel1,
+                title=f"{pollutant} Over Time — All Selected Cities"
+            )
+
+            fig.update_layout(
+                xaxis_title="Time",
+                yaxis_title=pollutant
+            )
+
+            st.markdown('<div class="plot-box">', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---------------- Summary Table ----------------
+    st.markdown("### 📌 Summary Statistics")
+    summary = df.groupby("City")[pollutants].describe()
     st.dataframe(summary, use_container_width=True)
