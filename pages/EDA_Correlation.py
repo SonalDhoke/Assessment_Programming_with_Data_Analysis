@@ -13,7 +13,21 @@ def show():
     st.header("📘 Correlation Matrix (Pollutants Only)")
 
     # -----------------------------------------
-    # 1) Detect pollutant columns only
+    # City Filter
+    # -----------------------------------------
+    st.subheader("🏙️ Select City")
+
+    cities = st.multiselect(
+        "Choose one or more cities:",
+        sorted(df["City"].dropna().unique()),
+        max_selections=3
+    )
+
+    if cities:
+        df = df[df["City"].isin(cities)]
+
+    # -----------------------------------------
+    # Pollutant Detection
     # -----------------------------------------
     exclude = {
         "City", "Date", "AQI", "AQI_Recalc",
@@ -27,50 +41,49 @@ def show():
         if col not in exclude and pd.api.types.is_numeric_dtype(df[col])
     ]
 
-    if not pollutant_cols:
-        st.error("No numeric pollutant columns found for correlation.")
+    if len(pollutant_cols) < 2:
+        st.error("Not enough pollutant columns to compute correlation.")
         return
 
     # -----------------------------------------
-    # 2) Correlation Type Selection
+    # Correlation Type Selection (Pearson / Spearman)
     # -----------------------------------------
-    corr_type = st.radio(
-        "Select Correlation Method",
-        ["Pearson", "Spearman", "Kendall"],
-        horizontal=True
+    corr_type = st.selectbox(
+        "Correlation Method",
+        ["Pearson", "Spearman"]
     )
 
     # -----------------------------------------
-    # 3) Compute Correlation Matrix
+    # Compute Correlation Matrix
     # -----------------------------------------
     corr = df[pollutant_cols].corr(method=corr_type.lower())
 
     # -----------------------------------------
-    # 4) Plot Heatmap (NO COLOR SCALE BAR)
+    # Heatmap (NO COLOR SCALE BAR)
     # -----------------------------------------
     fig = px.imshow(
         corr,
-        text_auto=True,            # shows values inside squares
+        text_auto=True,
         color_continuous_scale="RdBu_r",
         aspect="auto"
     )
 
-    fig.update_traces(colorbar=None)  # ❌ remove color scale legend
+    fig.update_traces(colorbar=None)
 
     fig.update_layout(
-        title=f"{corr_type} Correlation (Pollutants Only)",
+        title=f"{corr_type} Correlation Matrix (Pollutants Only)",
         xaxis_title="Pollutants",
         yaxis_title="Pollutants",
-        margin=dict(l=30, r=30, t=60, b=30)
+        margin=dict(l=30, r=30, t=50, b=30)
     )
-
-    # Make diagonal squares slightly darker for contrast
-    fig.update_xaxes(side="bottom")
 
     st.plotly_chart(fig, use_container_width=True)
 
     # -----------------------------------------
-    # 5) Show underlying correlation table
+    # Numeric Table
     # -----------------------------------------
-    with st.expander("Show Numeric Correlation Table"):
-        st.dataframe(corr.style.background_gradient(cmap="RdBu_r"), use_container_width=True)
+    with st.expander("📄 Show Correlation Values"):
+        st.dataframe(
+            corr.style.background_gradient(cmap="RdBu_r"),
+            use_container_width=True
+        )
