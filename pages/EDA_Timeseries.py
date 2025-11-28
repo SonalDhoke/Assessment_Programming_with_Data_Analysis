@@ -56,63 +56,57 @@ def show():
         if c not in exclude and pd.api.types.is_numeric_dtype(df[c])
     ]
 
-    # ---------------- Filter Panel ----------------
+    # ---------------- INLINE FILTER ROW ----------------
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         pollutants = st.multiselect(
-            "Select Pollutants (max 3)",
+            "Pollutants (max 3)",
             pollutant_cols,
             max_selections=3
         )
 
     with col2:
         cities = st.multiselect(
-            "Select Cities (max 3)",
+            "Cities (max 3)",
             sorted(df["City"].unique()),
             max_selections=3
         )
 
+    all_years = sorted(df["Date"].dt.year.dropna().unique())
+
     with col3:
-        time_group = st.selectbox(
-            "Group Data By",
-            ["None", "Monthly", "Yearly", "Weekly"]
-        )
+        from_year = st.selectbox("From Year", all_years)
+
+    with col4:
+        to_year = st.selectbox("To Year", all_years, index=len(all_years) - 1)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Normalization toggle
     normalize = st.checkbox("🔄 Normalize (Min-Max: 0 → 1)", value=True)
 
-    # ---------------- Validation ----------------
+    # ---------------- VALIDATION ----------------
     if not pollutants:
-        st.warning("Select at least one pollutant.")
+        st.warning("Please select at least one pollutant.")
         return
 
     if not cities:
-        st.warning("Select at least one city.")
+        st.warning("Please select at least one city.")
         return
 
-    # ---------------- Apply City Filter ----------------
+    if from_year > to_year:
+        st.error("❌ 'From Year' cannot be greater than 'To Year'.")
+        return
+
+    # ---------------- APPLY FILTERS ----------------
     df = df[df["City"].isin(cities)]
+    df = df[(df["Date"].dt.year >= from_year) & (df["Date"].dt.year <= to_year)]
 
-    # ---------------- Time Grouping ----------------
-    if time_group == "Monthly":
-        df["Month"] = df["Date"].dt.strftime("%Y-%m")
-        group_var = "Month"
-
-    elif time_group == "Yearly":
-        df["Year"] = df["Date"].dt.year.astype(str)
-        group_var = "Year"
-
-    elif time_group == "Weekly":
-        df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
-        group_var = "Week"
-
-    else:
-        group_var = "Date"
+    # Group-by variable always Date now (cleanest)
+    group_var = "Date"
 
     # =====================================================
     # NORMALIZATION LOGIC
@@ -122,19 +116,24 @@ def show():
         for pollutant in pollutants:
             min_val = df[pollutant].min()
             max_val = df[pollutant].max()
-            df[f"norm_{pollutant}"] = (df[pollutant] - min_val) / (max_val - min_val)
+
+            if max_val - min_val == 0:
+                df[f"norm_{pollutant}"] = 0
+            else:
+                df[f"norm_{pollutant}"] = (df[pollutant] - min_val) / (max_val - min_val)
 
         y_cols = [f"norm_{p}" for p in pollutants]
         y_label_suffix = " (Normalized)"
+
     else:
         y_cols = pollutants
         y_label_suffix = ""
 
     # =====================================================
-    # SMART VISUALIZATION LOGIC
+    # SMART CHART LOGIC
     # =====================================================
 
-    # CASE 1: Single Pollutant + Multiple Cities → One chart
+    # CASE 1 — ONE pollutant, MULTIPLE cities → single chart
     if len(pollutants) == 1 and len(cities) > 1:
 
         pollutant = pollutants[0]
@@ -149,17 +148,17 @@ def show():
             color="City",
             markers=False,
             color_discrete_sequence=DARK_COLORS,
-            title=f"{pollutant}{y_label_suffix} Over Time"
+            title=f"{pollutant}{y_label_suffix} Over Time ({from_year}–{to_year})"
         )
 
         fig.update_layout(
-            xaxis_title="Time",
+            xaxis_title="Date",
             yaxis_title=pollutant + y_label_suffix
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # CASE 2: Multiple Pollutants + Single City → One chart
+    # CASE 2 — MULTIPLE pollutants, ONE city → single chart
     elif len(cities) == 1 and len(pollutants) > 1:
 
         city = cities[0]
@@ -171,20 +170,19 @@ def show():
             y=y_cols,
             markers=False,
             color_discrete_sequence=DARK_COLORS,
-            title=f"Pollutant Trends{y_label_suffix} — {city}"
+            title=f"Pollutant Trends{y_label_suffix} — {city} ({from_year}–{to_year})"
         )
 
         fig.update_layout(
-            xaxis_title="Time",
+            xaxis_title="Date",
             yaxis_title="Pollutant Level" + y_label_suffix
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # CASE 3: Multiple Pollutants + Multiple Cities → Show all lines together (normalized makes it clean)
+    # CASE 3 — MULTIPLE pollutants, MULTIPLE cities → multiple charts (clean)
     else:
-
-        st.subheader(f"📊 Combined View (Normalized: {normalize})")
+        st.subheader(f"📊 Multiple Pollutants × Cities (Normalized: {normalize})")
 
         for pollutant, y_col in zip(pollutants, y_cols):
 
@@ -197,11 +195,11 @@ def show():
                 color="City",
                 markers=False,
                 color_discrete_sequence=DARK_COLORS,
-                title=f"{pollutant}{y_label_suffix} — All Selected Cities"
+                title=f"{pollutant}{y_label_suffix} — {from_year}–{to_year}"
             )
 
             fig.update_layout(
-                xaxis_title="Time",
+                xaxis_title="Date",
                 yaxis_title=pollutant + y_label_suffix
             )
 
