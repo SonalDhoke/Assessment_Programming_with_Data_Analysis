@@ -5,31 +5,48 @@ import pandas as pd
 def show():
     st.title("📊 Exploratory Data Analysis")
 
-    # -----------------------------------------
-    # Load dataset from session_state
-    # -----------------------------------------
+    # ==========================================================
+    # LOAD DATASET FROM SESSION STATE
+    # ==========================================================
     df = None
-    
+
     if "cleaned_df" in st.session_state:
         df = st.session_state.cleaned_df
     elif "current_df" in st.session_state:
         df = st.session_state.current_df
     elif "original_df" in st.session_state:
         df = st.session_state.original_df
-    
+
     if df is None:
-        st.error("No dataset found. Please load data from the Dataset Information page.")
+        st.error("❌ No dataset found. Please upload a dataset or run Data Cleaning.")
         return
+
+    # ==========================================================
+    # ENSURE AQI_RECALC EXISTS (Fallback to AQI if missing)
+    # ==========================================================
+    if "AQI_recalc" not in df.columns:
+        st.warning("⚠ 'AQI_recalc' is missing — using 'AQI' instead. "
+                   "Run the Data Cleaning page to generate AQI_recalc.")
+
+        if "AQI" in df.columns:
+            df["AQI_recalc"] = df["AQI"]
+        else:
+            st.error("❌ Neither 'AQI' nor 'AQI_recalc' exists in the dataset.")
+            return
+
+    # Ensure Month exists (fallback)
+    if "Month" not in df.columns:
+        df["Date"] = pd.to_datetime(df["Date"])
+        df["Month"] = df["Date"].dt.month
 
     pollutants = ['PM2.5','PM10','NO','NO2','NOx','NH3','CO','SO2','O3','Benzene','Toluene']
 
-    # ----------------------------------------------------------
-    #  SECTION 1 — DASHBOARD OVERVIEW (Always at top)
-    # ----------------------------------------------------------
+    # ==========================================================
+    # SECTION 1 — DASHBOARD OVERVIEW (Shown ALWAYS first)
+    # ==========================================================
     st.markdown("## 🧭 Dashboard Overview")
     st.write("Quick insights into air quality patterns across India.")
 
-    # ----- KPI CALCULATIONS -----
     avg_aqi = df["AQI_recalc"].mean()
     severe_days = df[df["AQI_recalc"] > 400].shape[0]
 
@@ -49,19 +66,25 @@ def show():
 
     st.markdown("---")
 
-    # ----- Mini AQI Trend Chart -----
+    # ==========================================================
+    # MINI AQI TREND CHART
+    # ==========================================================
     df_month = df.groupby("Month")["AQI_recalc"].mean().reset_index()
-    fig_trend = px.line(df_month, x="Month", y="AQI_recalc", markers=True, title="📉 Monthly AQI Trend")
+    fig_trend = px.line(df_month, x="Month", y="AQI_recalc",
+                        markers=True, title="📉 Monthly AQI Trend")
     fig_trend.update_layout(height=260, margin=dict(l=20,r=20,t=40,b=20))
     st.plotly_chart(fig_trend, use_container_width=True)
 
     st.markdown("---")
 
-    # ----- Mini Donut Chart for Pollutants -----
+    # ==========================================================
+    # MINI DONUT CHART — POLLUTANT COMPOSITION
+    # ==========================================================
     poll_mean = df[pollutants].mean().sort_values(ascending=False)
     fig_donut = px.pie(
-        names=poll_mean.index, values=poll_mean.values, 
-        hole=0.5, 
+        names=poll_mean.index,
+        values=poll_mean.values,
+        hole=0.5,
         title="🫧 Pollutant Composition",
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
@@ -70,18 +93,21 @@ def show():
 
     st.markdown("---")
 
-    # ----- Mini Bar Chart: Top 10 Polluted Cities -----
+    # ==========================================================
+    # MINI CITY POLLUTION RANKING — TOP 10
+    # ==========================================================
     city_rank_plot = city_rank.sort_values(ascending=False).reset_index().head(10)
-    fig_city = px.bar(city_rank_plot, x="City", y="AQI_recalc", title="🏙 Top Polluted Cities")
+    fig_city = px.bar(city_rank_plot, x="City", y="AQI_recalc",
+                      title="🏙 Top 10 Most Polluted Cities")
     fig_city.update_layout(height=300, xaxis_tickangle=45)
     st.plotly_chart(fig_city, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 📂 Choose an analysis module to explore deeper insights:")
+    st.markdown("### 📂 Choose an analysis module for deeper insights:")
 
-    # ----------------------------------------------------------
+    # ==========================================================
     # BUTTON STYLING
-    # ----------------------------------------------------------
+    # ==========================================================
     st.markdown(
         """
         <style>
@@ -103,9 +129,9 @@ def show():
         unsafe_allow_html=True
     )
 
-    # ----------------------------------------------------------
-    # SECTION 2 — MODULE SELECTION BUTTONS
-    # ----------------------------------------------------------
+    # ==========================================================
+    # SECTION 2 — MODULE BUTTONS
+    # ==========================================================
     if "eda_mode" not in st.session_state:
         st.session_state.eda_mode = "Distribution Analysis"
 
@@ -114,29 +140,25 @@ def show():
     with col1:
         if st.button("📈 Distribution Analysis"):
             st.session_state.eda_mode = "Distribution Analysis"
-
         if st.button("🔗 Correlation Matrix"):
             st.session_state.eda_mode = "Correlation Matrix"
-
         if st.button("🍂 Seasonal Patterns"):
             st.session_state.eda_mode = "Seasonal Patterns"
 
     with col2:
         if st.button("🕒 Time-Series Analysis"):
             st.session_state.eda_mode = "Time-Series Analysis"
-
         if st.button("🟢 AQI Category Analysis"):
             st.session_state.eda_mode = "AQI Category Analysis"
-
         if st.button("🔍 Comparison Tool"):
             st.session_state.eda_mode = "Comparison Tool"
 
     st.markdown(f"**Selected module:** `{st.session_state.eda_mode}`")
     st.markdown("---")
 
-    # ----------------------------------------------------------
-    # SECTION 3 — ROUTE TO SELECTED ANALYSIS MODULE
-    # ----------------------------------------------------------
+    # ==========================================================
+    # SECTION 3 — ROUTE TO SELECTED MODULE
+    # ==========================================================
     mode = st.session_state.eda_mode
 
     if mode == "Distribution Analysis":
