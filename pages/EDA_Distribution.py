@@ -119,17 +119,16 @@ def show():
     # 5️⃣ POLLUTANT RELATION WITH AQI
     # ----------------------------------------------------------
     st.subheader("5️⃣ Relationship with AQI")
-
+    
     if "AQI_recalc" not in df.columns:
         df["AQI_recalc"] = df["AQI"]
-
+    
     fig_relation = px.scatter(
         df,
         x=pollutant,
         y="AQI_recalc",
         color="AQI_Bucket",
-        trendline="ols",
         title=f"{pollutant} vs AQI"
     )
+    
     st.plotly_chart(fig_relation, use_container_width=True)
-
