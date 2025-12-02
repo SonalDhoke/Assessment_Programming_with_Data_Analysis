@@ -53,14 +53,14 @@ def show():
     pollutants = [
         col for col in df.columns 
         if col not in [
-            "AQI", "AQI_recalc", "AQI_Bucket", "AQI_Bucket_recalc",
+            "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_recalc",
             "City", "City_Code", "Date", "Month_Name",
             "Year", "Month", "Day", "Season", "Season_Code"
         ]
         and pd.api.types.is_numeric_dtype(df[col])
     ]
 
-    df = df.dropna(subset=pollutants + ["AQI_recalc"])
+    df = df.dropna(subset=pollutants + ["AQI_Recalc"])
 
     # ---------------------------------------------------------
     # REGRESSION MODEL – Predict AQI
@@ -68,7 +68,7 @@ def show():
     st.subheader("📈 Predict Numerical AQI (Regression)")
 
     X_reg = df[pollutants + ["City_Code", "Month", "Season_Code"]]
-    y_reg = df["AQI_recalc"]
+    y_reg = df["AQI_Recalc"]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X_reg, y_reg, test_size=0.2, random_state=42
