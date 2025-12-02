@@ -125,30 +125,42 @@ def show():
     # CLASSIFICATION MODEL – Predict AQI Category
     # ---------------------------------------------------------
     st.subheader("🏷 Predict AQI Category (Classification)")
-
-    df_clf = df.dropna(subset=["AQI_Bucket_recalc"])
-
+    
+    # Ensure column exists
+    if "AQI_Bucket_Recalc" not in df.columns:
+        st.error("Column 'AQI_Bucket_Recalc' not found in dataset.")
+        return
+    
+    # Remove rows where bucket is missing
+    df_clf = df.dropna(subset=["AQI_Bucket_Recalc"])
+    
     X_clf = df_clf[pollutants + ["City_Code", "Month", "Season_Code"]]
-    y_clf = df_clf["AQI_Bucket_recalc"]
-
+    y_clf = df_clf["AQI_Bucket_Recalc"]
+    
+    # Split data
     X_train, X_test, y_train, y_test = train_test_split(
         X_clf, y_clf, test_size=0.2, random_state=42
     )
-
+    
+    # Train classifier
     clf = RandomForestClassifier(n_estimators=200, random_state=42)
     clf.fit(X_train, y_train)
-
+    
+    # Evaluate
     y_pred_clf = clf.predict(X_test)
     clf_acc = accuracy_score(y_test, y_pred_clf)
-
+    
     st.success(f"Classification Model Accuracy: **{clf_acc:.3f}**")
-
-    # 🔧 FIX: Use same input_df but reorder to classifier features
+    
+    # ---- Prediction for User Input ----
     clf_feature_order = X_clf.columns.tolist()
+    
+    # Match columns exactly in same order
     input_df_clf = input_df.reindex(columns=clf_feature_order).fillna(0)
-
-    predicted_bucket = clf.predict(input_df_clf)[0]
-    st.info(f"### 🏷 AQI Category Prediction: **{predicted_bucket}**")
+    
+    pred_bucket = clf.predict(input_df_clf)[0]
+    
+    st.info(f"### 🏷 AQI Category Prediction: **{pred_bucket}**")
 
     # ---------------------------------------------------------
     # FEATURE IMPORTANCE PLOT
