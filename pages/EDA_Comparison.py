@@ -51,7 +51,7 @@ def show():
     exclude_cols = {
         "City", "Date",
         "AQI", "AQI_Bucket", "AQI_Recalc", "AQI_Bucket_Recalc",
-        "Year", "Month", "Month_Name", "Day", "Week_Number" , "Month_Number"
+        "Year", "Month", "Month_Name", "Day", "Week_Number" , "Month_Number","AQI_recalc","AQI_Bucket_recalc"
     }
 
     pollutant_cols = [
