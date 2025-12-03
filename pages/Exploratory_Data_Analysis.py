@@ -6,9 +6,12 @@ import pandas as pd
 def show():
 
     # ==========================================================
-    # CLEAN HEADER SIZES (FIXED)
+    # HEADER (slightly smaller than st.title)
     # ==========================================================
-    st.markdown("<h2 style='font-size:32px;'>📊 Exploratory Data Analysis</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<h2 style='font-size:32px; margin-bottom:0.5rem;'>📊 Exploratory Data Analysis</h2>",
+        unsafe_allow_html=True,
+    )
 
     # ==========================================================
     # LOAD DATASET FROM SESSION STATE
@@ -37,7 +40,19 @@ def show():
     df["Month"] = df["Date"].dt.month
     df["Month_Name"] = df["Date"].dt.strftime("%B")
 
-    pollutants = ['PM2.5','PM10','NO','NO2','NOx','NH3','CO','SO2','O3','Benzene','Toluene']
+    pollutants = [
+        "PM2.5",
+        "PM10",
+        "NO",
+        "NO2",
+        "NOx",
+        "NH3",
+        "CO",
+        "SO2",
+        "O3",
+        "Benzene",
+        "Toluene",
+    ]
 
     # ==========================================================
     # KPI SECTION
@@ -49,10 +64,23 @@ def show():
 
     HIGH_AQI_THRESHOLD = 200
     high_df = df[df["AQI_recalc"] > HIGH_AQI_THRESHOLD]
-    city_incidents = high_df.groupby("City")["AQI_recalc"].count().sort_values(ascending=False)
+    city_incidents = (
+        high_df.groupby("City")["AQI_recalc"]
+        .count()
+        .sort_values(ascending=False)
+    )
 
-    most_polluted_city = f"{city_incidents.idxmax()} ({city_incidents.max()} incidents)" if not city_incidents.empty else "N/A"
-    cleanest_city = f"{city_incidents.idxmin()} ({city_incidents.min()} incidents)" if not city_incidents.empty else "N/A"
+    if not city_incidents.empty:
+        most_polluted_city = (
+            f"{city_incidents.idxmax()} ({city_incidents.max()} incidents)"
+        )
+        cleanest_city = (
+            f"{city_incidents.idxmin()} ({city_incidents.min()} incidents)"
+        )
+    else:
+        most_polluted_city = "N/A"
+        cleanest_city = "N/A"
+
     top_pollutant = df[pollutants].mean().idxmax()
 
     k1, k2, k3, k4, k5 = st.columns(5)
@@ -69,13 +97,30 @@ def show():
     # ==========================================================
     st.markdown("### 📉 Monthly AQI Trend")
 
-    month_order = ["January","February","March","April","May","June",
-                   "July","August","September","October","November","December"]
+    month_order = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
 
-    df_month = df.groupby("Month_Name")["AQI_recalc"].mean().reindex(month_order).reset_index()
+    df_month = (
+        df.groupby("Month_Name")["AQI_recalc"]
+        .mean()
+        .reindex(month_order)
+        .reset_index()
+    )
 
     fig_trend = px.line(df_month, x="Month_Name", y="AQI_recalc", markers=True)
-    fig_trend.update_layout(height=260)
+    fig_trend.update_layout(height=260, xaxis_title="Month", yaxis_title="AQI")
     st.plotly_chart(fig_trend, use_container_width=True)
 
     st.markdown("---")
@@ -90,7 +135,7 @@ def show():
         names=poll_mean.index,
         values=poll_mean.values,
         hole=0.5,
-        color_discrete_sequence=px.colors.qualitative.Pastel
+        color_discrete_sequence=px.colors.qualitative.Pastel,
     )
     fig_donut.update_layout(height=260, showlegend=False)
     st.plotly_chart(fig_donut, use_container_width=True)
@@ -103,56 +148,63 @@ def show():
     st.markdown(f"### 🏙 Top Cities with High AQI (>{HIGH_AQI_THRESHOLD})")
 
     if not city_incidents.empty:
-        city_plot = city_incidents.reset_index().rename(columns={"AQI_recalc": "High AQI Incidents"})
-        fig_city = px.bar(city_plot.head(10), x="City", y="High AQI Incidents", text="High AQI Incidents")
-        fig_city.update_traces(textposition='outside')
+        city_plot = city_incidents.reset_index().rename(
+            columns={"AQI_recalc": "High AQI Incidents"}
+        )
+        fig_city = px.bar(
+            city_plot.head(10),
+            x="City",
+            y="High AQI Incidents",
+            text="High AQI Incidents",
+        )
+        fig_city.update_traces(textposition="outside")
         fig_city.update_layout(height=300, xaxis_tickangle=45)
         st.plotly_chart(fig_city, use_container_width=True)
+    else:
+        st.info("No high AQI data available.")
 
     st.markdown("---")
 
     # ==========================================================
     # MODULE TITLE
     # ==========================================================
-    st.markdown("<h3 style='font-size:24px;'>📂 Choose an Analysis Module</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='font-size:24px; margin-bottom:0.5rem;'>📂 Choose an Analysis Module</h3>",
+        unsafe_allow_html=True,
+    )
 
     # ==========================================================
-    # MODULE CARD CSS (CLEAN)
+    # STYLE ALL st.button AS PASTEL CARDS
     # ==========================================================
-    st.markdown("""
-    <style>
-    .module-card {
-        background: linear-gradient(135deg, #EEF4FF, #F8FBFF);
-        border: 1px solid #C9DAFF;
-        border-radius: 18px;
-        padding: 18px;
-        text-align: center;
-        font-size: 16px;
-        font-weight: 600;
-        color: #344767;
-        cursor: pointer;
-        transition: all 0.25s ease-in-out;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
-        margin-bottom: 10px;
-    }
-
-    .module-card:hover {
-        transform: translateY(-3px);
-        background: linear-gradient(135deg, #DDE9FF, #EEF4FF);
-        border-color: #7CA4FF;
-        box-shadow: 0px 8px 20px rgba(124,164,255,0.25);
-    }
-
-    .selected-card {
-        background: linear-gradient(135deg, #C7DBFF, #E6F0FF);
-        border: 2px solid #5C8DFF;
-        box-shadow: 0px 10px 28px rgba(92,141,255,0.35);
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <style>
+        div.stButton > button {
+            width: 100%;
+            border-radius: 18px;
+            border: 1px solid #C9DAFF;
+            background: linear-gradient(135deg, #EEF4FF, #F8FBFF);
+            color: #344767;
+            padding: 0.75rem 0.5rem;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        div.stButton > button:hover {
+            background: linear-gradient(135deg, #DDE9FF, #EEF4FF);
+            border-color: #7CA4FF;
+            box-shadow: 0px 8px 20px rgba(124,164,255,0.25);
+            transform: translateY(-2px);
+        }
+        /* Selected-state "fake" highlight: we’ll add a green border via markdown text below */
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # ==========================================================
-    # SINGLE CLICK MODULE GRID (NO DUPLICATES)
+    # MODULE GRID (3 × 2) USING ONLY BUTTONS
     # ==========================================================
     if "eda_mode" not in st.session_state:
         st.session_state.eda_mode = "Distribution Analysis"
@@ -171,21 +223,14 @@ def show():
 
     for i, (label, value) in enumerate(modules):
         col = row1[i] if i < 3 else row2[i - 3]
-        is_selected = st.session_state.eda_mode == value
-        card_class = "module-card selected-card" if is_selected else "module-card"
-
         with col:
-            if st.button(label, key=value):
+            # If this button is clicked, update the selected mode
+            if st.button(label, key=f"mod_{value}"):
                 st.session_state.eda_mode = value
-
-            st.markdown(
-                f"<div class='{card_class}'>{label}</div>",
-                unsafe_allow_html=True
-            )
 
     st.markdown(
         f"✅ <b>Selected Module:</b> <span style='color:green'>{st.session_state.eda_mode}</span>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
     st.markdown("---")
 
@@ -196,24 +241,30 @@ def show():
 
     if mode == "Distribution Analysis":
         import pages.EDA_Distribution as pg
+
         pg.show()
 
     elif mode == "Time-Series Analysis":
         import pages.EDA_Timeseries as pg
+
         pg.show()
 
     elif mode == "Correlation Matrix":
         import pages.EDA_Correlation as pg
+
         pg.show()
 
     elif mode == "AQI Category Analysis":
         import pages.EDA_AQI_Category as pg
+
         pg.show()
 
     elif mode == "Seasonal Patterns":
         import pages.EDA_Seasonal as pg
+
         pg.show()
 
     elif mode == "Comparison Tool":
         import pages.EDA_Comparison as pg
+
         pg.show()
