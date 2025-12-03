@@ -96,27 +96,39 @@ def show():
     """, unsafe_allow_html=True)
 
     # ===============================================================
-    # 🔍 VIEW ROWS BLOCK
+    # 🔍 VIEW ROWS BLOCK (SIDE-BY-SIDE)
     # ===============================================================
     st.markdown("<div class='sub-header'>🔍 View Dataset Rows</div>", unsafe_allow_html=True)
+    
+    colA, colB = st.columns(2)
+    
+    with colA:
+        st.markdown("### ▶️ First Rows")
+        num_rows_first = st.number_input(
+            "Rows to display (first):", min_value=1, max_value=total_rows, value=5
+        )
+        st.dataframe(df.head(num_rows_first), use_container_width=True)
+    
+    with colB:
+        st.markdown("### ◀️ Last Rows")
+        num_rows_last = st.number_input(
+            "Rows to display (last):", min_value=1, max_value=total_rows, value=5
+        )
+        st.dataframe(df.tail(num_rows_last), use_container_width=True)
 
-    view_option = st.radio(
-        "Select how to display rows:",
-        ["Show first rows", "Show last rows"],
-        horizontal=True
-    )
-
-    num_rows = st.number_input(
-        f"Enter number of rows to display (max {total_rows}):",
-        min_value=1,
-        max_value=total_rows,
-        value=5
-    )
-
-    if view_option == "Show first rows":
-        st.dataframe(df.head(num_rows), use_container_width=True)
+    # ===============================================================
+    # 🔎 UNIQUE VALUES CHECKER FOR CATEGORICAL COLUMNS
+    # ===============================================================
+    st.markdown("<div class='sub-header'>🔎 Check Unique Values of Categorical Columns</div>", unsafe_allow_html=True)
+    
+    # Identify categorical columns automatically
+    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
+    
+    if len(cat_cols) > 0:
+        selected_cat = st.selectbox("Select a categorical column:", cat_cols)
+        st.markdown(f"<div class='pastel-box'><b>Unique Values in {selected_cat}:</b><br>{df[selected_cat].unique()}</div>", unsafe_allow_html=True)
     else:
-        st.dataframe(df.tail(num_rows), use_container_width=True)
+        st.info("No categorical columns found in the dataset.")
 
     # ----------------------------
     # Dataset Structure
