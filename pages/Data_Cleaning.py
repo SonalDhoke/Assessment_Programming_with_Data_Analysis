@@ -392,7 +392,7 @@ def show():
         You may now navigate to the **EDA page** to explore insights  
         using the fully processed dataset.
         """)
-        st.balloons()
+        st.snow()
 
     if reset_all:
         st.session_state.current_df = st.session_state.original_df.copy()
