@@ -64,7 +64,9 @@ def show():
         "Month_Number",
         "Month_Name",
         "Day",
-        "Week_Number"
+        "Week_Number",
+        "AQI_recalc",
+        "AQI_Bucket_recalc"
     }
 
     pollutant_cols = [
