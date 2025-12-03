@@ -122,7 +122,8 @@ def show():
     st.markdown("<div class='sub-header'>🔎 Check Unique Values of Categorical Columns</div>", unsafe_allow_html=True)
     
     # Identify categorical columns automatically
-    cat_cols = df.select_dtypes(include=['object']).columns.tolist()
+    cat_cols = ["City", "AQI_Bucket"]
+    cat_cols = [col for col in cat_cols if col in df.columns]
     
     if len(cat_cols) > 0:
         selected_cat = st.selectbox("Select a categorical column:", cat_cols)
