@@ -21,17 +21,12 @@ def show():
     Contains official AQI breakpoints, calculation methodology, 
     health categories, and pollutant standards.
 
-    **2. CPCB – National Air Quality Monitoring Programme (NAMP)**  
-    🔗 https://cpcb.nic.in/namp/  
-    Provides monitored pollutant data collected from stations across India.
-
-    **3. CPCB – Real-Time Air Quality Dashboard**  
+    **2. CPCB – Real-Time Air Quality Dashboard**  
     🔗 https://app.cpcbccr.com/AQI_India/  
     Live AQI & pollution levels from continuous monitoring systems.
 
-    **4. CPCB – Air Quality Standards for India**  
-    🔗 https://cpcb.nic.in/uploads/National_Air_Quality_Standards.pdf  
-    Defines permissible pollutant limits and health impacts.
+    **3. CPCB – Air Quality Standards for India**  
+    🔗 https://cpcb.nic.in/upload/NAAQS_2019.pdf
     """)
 
     st.markdown("---")
@@ -54,22 +49,6 @@ def show():
     """)
 
     st.markdown("---")
-
-    # -------------------- MoEFCC --------------------
-    st.subheader("🏛 Ministry of Environment, Forest and Climate Change (MoEFCC)")
-
-    st.markdown("""
-    **1. MoEFCC Official Website**  
-    🔗 https://moef.gov.in/  
-    Policies, environmental regulations, national clean air initiatives.
-
-    **2. National Clean Air Programme (NCAP)**  
-    🔗 https://ncap.niti.gov.in/  
-    Government initiative to reduce particulate pollution by 20–30%.
-    """)
-
-    st.markdown("---")
-
     # -------------------- WHO --------------------
     st.subheader("🌍 World Health Organization (WHO) – Global Standards")
 
@@ -85,33 +64,32 @@ def show():
 
     st.markdown("---")
 
-    # -------------------- NASA & Satellite Data --------------------
-    st.subheader("🛰️ NASA / ESA – Satellite-Based Air Quality Sources")
-
-    st.markdown("""
-    **1. NASA Earth Data – Air Quality**  
-    🔗 https://earthdata.nasa.gov/learn/toolkits/air-quality  
-    Satellite datasets for aerosols, NO₂, SO₂, CO, ozone.
-
-    **2. Sentinel-5P (ESA) – Atmosphere Monitoring**  
-    🔗 https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-5p  
-    Real-time mapping of trace gases (NO₂, SO₂, CO, O₃).
-    """)
-
-    st.markdown("---")
-
     # -------------------- Scientific Articles --------------------
     st.subheader("📖 Scientific Articles & Research")
 
     st.markdown("""
-    **1. Air Quality Index Methodologies (Research Paper)**  
-    🔗 https://www.sciencedirect.com/science/article/pii/S0160412020321208  
+    **1. Assessment and forecasting of particulate matter emissions and structural health monitoring of buildings**  
+    🔗 https://www.nature.com/articles/s41598-025-00814-9  
 
     **2. PM2.5 Health Impact Studies (Lancet)**  
-    🔗 https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)32558-2/fulltext  
+    🔗 https://www.thelancet.com/journals/lanplh/article/PIIS2542-5196(21)00350-8/fulltext 
 
     **3. Atmospheric Chemistry of NO, NO₂, NOx**  
-    🔗 https://acp.copernicus.org/articles/  
+    🔗 https://www.sciencedirect.com/science/article/abs/pii/S1352231022006276  
+    """)
+
+    st.markdown("---")
+     # -------------------- Data Modeling --------------------
+    st.subheader("🤖 Data Modeling and Predictions")
+
+    st.markdown("""
+    **1. Air Quality Index Predictions Using Supervised ML Classifiers**  
+    🔗 https://eprint.innovativepublication.org/id/eprint/1787/1/IJISRT25JUL758%20%281%29.pdf  
+    
+
+    **2. Air Quality Prediction System using LightGBM**  
+    🔗 https://www.irjet.net/archives/V7/i7/IRJET-V7I7678.pdf 
+    
     """)
 
     st.markdown("---")
