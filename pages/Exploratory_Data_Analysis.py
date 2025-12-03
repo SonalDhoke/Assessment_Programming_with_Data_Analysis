@@ -4,7 +4,11 @@ import pandas as pd
 
 
 def show():
-    st.title("📊 Exploratory Data Analysis")
+
+    # ==========================================================
+    # CLEAN HEADER SIZES (FIXED)
+    # ==========================================================
+    st.markdown("<h2 style='font-size:32px;'>📊 Exploratory Data Analysis</h2>", unsafe_allow_html=True)
 
     # ==========================================================
     # LOAD DATASET FROM SESSION STATE
@@ -61,7 +65,7 @@ def show():
     st.markdown("---")
 
     # ==========================================================
-    # MONTHLY TREND
+    # MONTHLY AQI TREND
     # ==========================================================
     st.markdown("### 📉 Monthly AQI Trend")
 
@@ -82,15 +86,19 @@ def show():
     st.markdown("### 🫧 Pollutant Composition")
 
     poll_mean = df[pollutants].mean().sort_values(ascending=False)
-    fig_donut = px.pie(names=poll_mean.index, values=poll_mean.values, hole=0.5,
-                       color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_donut = px.pie(
+        names=poll_mean.index,
+        values=poll_mean.values,
+        hole=0.5,
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
     fig_donut.update_layout(height=260, showlegend=False)
     st.plotly_chart(fig_donut, use_container_width=True)
 
     st.markdown("---")
 
     # ==========================================================
-    # CITY BAR
+    # CITY BAR PLOT
     # ==========================================================
     st.markdown(f"### 🏙 Top Cities with High AQI (>{HIGH_AQI_THRESHOLD})")
 
@@ -102,10 +110,14 @@ def show():
         st.plotly_chart(fig_city, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("## 📂 Choose an Analysis Module")
 
     # ==========================================================
-    # 3×2 PASTEL GRID STYLING
+    # MODULE TITLE
+    # ==========================================================
+    st.markdown("<h3 style='font-size:24px;'>📂 Choose an Analysis Module</h3>", unsafe_allow_html=True)
+
+    # ==========================================================
+    # MODULE CARD CSS (CLEAN)
     # ==========================================================
     st.markdown("""
     <style>
@@ -121,6 +133,7 @@ def show():
         cursor: pointer;
         transition: all 0.25s ease-in-out;
         box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 10px;
     }
 
     .module-card:hover {
@@ -138,6 +151,9 @@ def show():
     </style>
     """, unsafe_allow_html=True)
 
+    # ==========================================================
+    # SINGLE CLICK MODULE GRID (NO DUPLICATES)
+    # ==========================================================
     if "eda_mode" not in st.session_state:
         st.session_state.eda_mode = "Distribution Analysis"
 
@@ -159,15 +175,22 @@ def show():
         card_class = "module-card selected-card" if is_selected else "module-card"
 
         with col:
-            st.markdown(f"<div class='{card_class}'>{label}</div>", unsafe_allow_html=True)
             if st.button(label, key=value):
                 st.session_state.eda_mode = value
 
-    st.markdown(f"### ✅ Selected Module: `{st.session_state.eda_mode}`")
+            st.markdown(
+                f"<div class='{card_class}'>{label}</div>",
+                unsafe_allow_html=True
+            )
+
+    st.markdown(
+        f"✅ <b>Selected Module:</b> <span style='color:green'>{st.session_state.eda_mode}</span>",
+        unsafe_allow_html=True
+    )
     st.markdown("---")
 
     # ==========================================================
-    # LOAD MODULE
+    # LOAD SELECTED MODULE
     # ==========================================================
     mode = st.session_state.eda_mode
 
