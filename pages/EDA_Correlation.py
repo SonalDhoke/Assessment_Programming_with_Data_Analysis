@@ -142,6 +142,26 @@ def show():
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+    # ----------------------------------------------------------
+    # Correlation Method Description
+    # ----------------------------------------------------------
+    st.markdown("""
+    <div class="section-box">
+        <h3>ℹ️ About Correlation Methods</h3>
+        <ul style="font-size:16px; color:#3A4A66; line-height:1.6;">
+            <li><b>Pearson Correlation</b> measures the <b>linear relationship</b> between pollutants.  
+            It is best when variables change in a straight-line pattern.</li>
+    
+            <li><b>Spearman Correlation</b> measures the <b>rank-based, monotonic relationship</b> between pollutants.  
+            It is more robust when data is <b>non-linear</b>, <b>skewed</b>, or has <b>outliers</b>.</li>
+        </ul>
+        <p style="font-size:15px; color:#56627A;">
+            Use Spearman if pollutant values are uneven, seasonal, or contain spikes.  
+            Use Pearson for cleaner or more linear pollutant trends.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
 
     # ----------------------------------------------------------
     # DOWNLOAD CSV
@@ -153,9 +173,3 @@ def show():
         file_name="pollutant_correlation_matrix.csv",
         mime="text/csv"
     )
-
-    # ----------------------------------------------------------
-    # RAW DATA VIEW (Optional)
-    # ----------------------------------------------------------
-    with st.expander("📄 View Data Used for Correlation"):
-        st.dataframe(filtered_df[pollutant_cols], use_container_width=True)
