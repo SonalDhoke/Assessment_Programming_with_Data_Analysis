@@ -163,7 +163,7 @@ def show():
             ✅ Use <b>Pearson</b> for cleaner, more linear pollutant trends.
         </p>
     </div>
-    """, unsafe_allow_html=True)---------------
+    """, unsafe_allow_html=True)
      
 
     # ----------------------------------------------------------
