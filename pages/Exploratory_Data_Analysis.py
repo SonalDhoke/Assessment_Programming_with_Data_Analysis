@@ -148,3 +148,89 @@ def show():
         st.info("No high AQI data available.")
 
     st.markdown("---")
+    # ==========================================================
+    # ANALYSIS MODULE SELECTOR
+    # ==========================================================
+    st.markdown("<h3 style='font-size:24px;'>📂 Choose an Analysis Module</h3>", unsafe_allow_html=True)
+    
+    # ------------------ PASTEL BUTTON STYLING ------------------
+    st.markdown("""
+    <style>
+    div.stButton > button {
+        width: 100%;
+        border-radius: 18px;
+        border: 1px solid #C9DAFF;
+        background: linear-gradient(135deg, #EEF4FF, #F8FBFF);
+        color: #344767;
+        padding: 0.8rem 0.5rem;
+        font-size: 15px;
+        font-weight: 600;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.05);
+        transition: all 0.2s ease-in-out;
+    }
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #DDE9FF, #EEF4FF);
+        border-color: #7CA4FF;
+        box-shadow: 0px 8px 20px rgba(124,164,255,0.25);
+        transform: translateY(-2px);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # ------------------ SESSION STATE ------------------
+    if "eda_mode" not in st.session_state:
+        st.session_state.eda_mode = "Distribution Analysis"
+    
+    modules = [
+        ("📈 Distribution Analysis", "Distribution Analysis"),
+        ("🕒 Time-Series Analysis", "Time-Series Analysis"),
+        ("🔗 Correlation Matrix", "Correlation Matrix"),
+        ("🟢 AQI Category Analysis", "AQI Category Analysis"),
+        ("🍂 Seasonal Patterns", "Seasonal Patterns"),
+        ("🔍 Comparison Tool", "Comparison Tool"),
+    ]
+    
+    row1 = st.columns(3)
+    row2 = st.columns(3)
+    
+    for i, (label, value) in enumerate(modules):
+        col = row1[i] if i < 3 else row2[i - 3]
+        with col:
+            if st.button(label, key=f"mod_{value}"):
+                st.session_state.eda_mode = value
+    
+    st.markdown(
+        f"✅ <b>Selected Module:</b> <span style='color:green'>{st.session_state.eda_mode}</span>",
+        unsafe_allow_html=True
+    )
+    st.markdown("---")
+    
+    # ==========================================================
+    # LOAD SELECTED MODULE PAGE
+    # ==========================================================
+    mode = st.session_state.eda_mode
+    
+    if mode == "Distribution Analysis":
+        import pages.EDA_Distribution as pg
+        pg.show()
+    
+    elif mode == "Time-Series Analysis":
+        import pages.EDA_Timeseries as pg
+        pg.show()
+    
+    elif mode == "Correlation Matrix":
+        import pages.EDA_Correlation as pg
+        pg.show()
+    
+    elif mode == "AQI Category Analysis":
+        import pages.EDA_AQI_Category as pg
+        pg.show()
+    
+    elif mode == "Seasonal Patterns":
+        import pages.EDA_Seasonal as pg
+        pg.show()
+    
+    elif mode == "Comparison Tool":
+        import pages.EDA_Comparison as pg
+        pg.show()
+    
