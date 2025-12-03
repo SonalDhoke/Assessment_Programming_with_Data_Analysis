@@ -17,7 +17,7 @@ def show():
 
     st.markdown("""
     **1. CPCB – National Air Quality Index (AQI) Framework**  
-    🔗 https://cpcb.nic.in/National-Air-Quality-Index/  
+    🔗 https://cpcb.nic.in/displaypdf.php?id=bmF0aW9uYWwtYWlyLXF1YWxpdHktaW5kZXgvRklOQUwtUkVQT1JUX0FRSV8ucGRm
     Contains official AQI breakpoints, calculation methodology, 
     health categories, and pollutant standards.
 
