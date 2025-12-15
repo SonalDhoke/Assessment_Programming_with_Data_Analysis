@@ -1,10 +1,5 @@
 import streamlit as st
 import pandas as pd
-import lightgbm as lgb
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import r2_score, accuracy_score
 import plotly.express as px
 
 
@@ -22,34 +17,39 @@ def show():
     df = st.session_state.cleaned_df.copy()
 
     # =====================================================
-    # FEATURE ENGINEERING (CACHED)
+    # LOAD REGRESSION MODEL (FROM app.py)
     # =====================================================
-    @st.cache_data
-    def prepare_features(df):
-        df = df.copy()
+    reg_model = st.session_state.reg_model
 
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-        df["Month"] = df["Date"].dt.month
-
-        df["Season"] = df["Month"].map({
-            12: "Winter", 1: "Winter", 2: "Winter",
-            3: "Summer", 4: "Summer", 5: "Summer",
-            6: "Monsoon", 7: "Monsoon", 8: "Monsoon",
-            9: "Post-Monsoon", 10: "Post-Monsoon", 11: "Post-Monsoon"
-        })
-
-        season_encoder = LabelEncoder()
-        city_encoder = LabelEncoder()
-
-        df["Season_Code"] = season_encoder.fit_transform(df["Season"])
-        df["City_Code"] = city_encoder.fit_transform(df["City"])
-
-        return df, season_encoder, city_encoder
-
-    df, season_encoder, city_encoder = prepare_features(df)
+    # 🔥 Get feature order DIRECTLY from model
+    feature_cols = reg_model.feature_name_
 
     # =====================================================
-    # POLLUTANT FEATURES (STRICT FILTER)
+    # BASIC FEATURE ENGINEERING (NO FITTING)
+    # =====================================================
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df["Month"] = df["Date"].dt.month
+
+    df["Season"] = df["Month"].map({
+        12: "Winter", 1: "Winter", 2: "Winter",
+        3: "Summer", 4: "Summer", 5: "Summer",
+        6: "Monsoon", 7: "Monsoon", 8: "Monsoon",
+        9: "Post-Monsoon", 10: "Post-Monsoon", 11: "Post-Monsoon"
+    })
+
+    # =====================================================
+    # RECREATE ENCODING (CONSISTENT ENOUGH)
+    # =====================================================
+    from sklearn.preprocessing import LabelEncoder
+
+    city_encoder = LabelEncoder()
+    season_encoder = LabelEncoder()
+
+    df["City_Code"] = city_encoder.fit_transform(df["City"])
+    df["Season_Code"] = season_encoder.fit_transform(df["Season"])
+
+    # =====================================================
+    # POLLUTANT INPUTS
     # =====================================================
     exclude_cols = [
         "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_Recalc",
@@ -63,75 +63,6 @@ def show():
         if col not in exclude_cols
         and pd.api.types.is_numeric_dtype(df[col])
     ]
-
-    # Remove rows without target
-    df = df.dropna(subset=["AQI_Recalc"])
-
-    # =====================================================
-    # MODEL TRAINING (CACHED – RUNS ONCE)
-    # =====================================================
-    @st.cache_resource
-    def train_lgbm_models(df, pollutants):
-
-        feature_cols = pollutants + ["City_Code", "Month", "Season_Code"]
-        assert len(feature_cols) == len(set(feature_cols)), "Duplicate features!"
-
-        X = df[feature_cols]
-
-        # ---------------- REGRESSION ----------------
-        y_reg = df["AQI_Recalc"]
-
-        Xtr, Xte, ytr, yte = train_test_split(
-            X, y_reg, test_size=0.2, random_state=42
-        )
-
-        reg = lgb.LGBMRegressor(
-            n_estimators=200,
-            learning_rate=0.05,
-            num_leaves=31,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            n_jobs=-1,
-            random_state=42,
-            verbosity=-1   # 🔥 FIXES LOG SPAM
-        )
-
-        reg.fit(Xtr, ytr)
-        r2 = r2_score(yte, reg.predict(Xte))
-
-        # ---------------- CLASSIFICATION ----------------
-        df_clf = df.dropna(subset=["AQI_Bucket_Recalc"])
-        X_clf = df_clf[feature_cols]
-        y_clf = df_clf["AQI_Bucket_Recalc"]
-
-        Xtr, Xte, ytr, yte = train_test_split(
-            X_clf, y_clf, test_size=0.2, random_state=42
-        )
-
-        clf = lgb.LGBMClassifier(
-            n_estimators=200,
-            learning_rate=0.05,
-            num_leaves=31,
-            n_jobs=-1,
-            random_state=42,
-            verbosity=-1   # 🔥 FIXES LOG SPAM
-        )
-
-        clf.fit(Xtr, ytr)
-        acc = accuracy_score(yte, clf.predict(Xte))
-
-        return reg, clf, r2, acc, feature_cols
-
-    # Spinner so UI doesn't look frozen
-    with st.spinner("Training LightGBM models (first run only)..."):
-        reg_model, clf_model, reg_r2, clf_acc, feature_cols = train_lgbm_models(df, pollutants)
-
-    # =====================================================
-    # MODEL METRICS
-    # =====================================================
-    st.subheader("📊 Model Performance")
-    st.success(f"Regression R² Score: **{reg_r2:.3f}**")
-    st.success(f"Classification Accuracy: **{clf_acc:.3f}**")
 
     # =====================================================
     # USER INPUT
@@ -154,9 +85,13 @@ def show():
     month = st.number_input("Month", 1, 12, 6)
 
     season = df[df["City"] == city]["Season"].mode().iloc[0]
-    season_code = season_encoder.transform([season])[0]
-    city_code = city_encoder.transform([city])[0]
 
+    city_code = city_encoder.transform([city])[0]
+    season_code = season_encoder.transform([season])[0]
+
+    # =====================================================
+    # BUILD INPUT DF (MATCH MODEL FEATURES)
+    # =====================================================
     input_df = pd.DataFrame([{
         **user_input,
         "City_Code": city_code,
@@ -171,10 +106,7 @@ def show():
     # =====================================================
     if st.button("Predict AQI"):
         pred_aqi = reg_model.predict(input_df)[0]
-        pred_bucket = clf_model.predict(input_df)[0]
-
         st.info(f"🌫 **Predicted AQI:** {pred_aqi:.2f}")
-        st.info(f"🏷 **AQI Category:** {pred_bucket}")
 
     # =====================================================
     # FEATURE IMPORTANCE
