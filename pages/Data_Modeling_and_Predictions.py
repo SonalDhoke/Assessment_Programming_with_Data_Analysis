@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from sklearn.preprocessing import LabelEncoder
 
 
 def show():
@@ -11,21 +12,21 @@ def show():
     # LOAD DATA
     # =====================================================
     if "cleaned_df" not in st.session_state:
-        st.error("Cleaned dataset not found. Complete data cleaning first.")
+        st.error("Cleaned dataset not found. Please complete data cleaning first.")
         return
 
     df = st.session_state.cleaned_df.copy()
 
     # =====================================================
-    # LOAD REGRESSION MODEL (FROM app.py)
+    # LOAD TRAINED MODEL (FROM app.py)
     # =====================================================
     reg_model = st.session_state.reg_model
 
-    # 🔥 Get feature order DIRECTLY from model
+    # Feature order learned during training
     feature_cols = reg_model.feature_name_
 
     # =====================================================
-    # BASIC FEATURE ENGINEERING (NO FITTING)
+    # BASIC FEATURE ENGINEERING (NO TRAINING)
     # =====================================================
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df["Month"] = df["Date"].dt.month
@@ -37,11 +38,7 @@ def show():
         9: "Post-Monsoon", 10: "Post-Monsoon", 11: "Post-Monsoon"
     })
 
-    # =====================================================
-    # RECREATE ENCODING (CONSISTENT ENOUGH)
-    # =====================================================
-    from sklearn.preprocessing import LabelEncoder
-
+    # Encode categorical columns
     city_encoder = LabelEncoder()
     season_encoder = LabelEncoder()
 
@@ -49,7 +46,7 @@ def show():
     df["Season_Code"] = season_encoder.fit_transform(df["Season"])
 
     # =====================================================
-    # POLLUTANT INPUTS
+    # POLLUTANT FEATURES (AQI_RECALC EXCLUDED 🔥)
     # =====================================================
     exclude_cols = [
         "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_Recalc",
@@ -65,7 +62,7 @@ def show():
     ]
 
     # =====================================================
-    # USER INPUT
+    # USER INPUT UI
     # =====================================================
     st.subheader("🔮 Predict AQI")
 
@@ -76,13 +73,13 @@ def show():
         with cols[i % 3]:
             user_input[p] = st.number_input(
                 p,
-                float(df[p].min()),
-                float(df[p].max()),
-                float(df[p].mean())
+                min_value=float(df[p].min()),
+                max_value=float(df[p].max()),
+                value=float(df[p].mean())
             )
 
     city = st.selectbox("City", sorted(df["City"].unique()))
-    month = st.number_input("Month", 1, 12, 6)
+    month = st.number_input("Month", min_value=1, max_value=12, value=6)
 
     season = df[df["City"] == city]["Season"].mode().iloc[0]
 
@@ -90,7 +87,7 @@ def show():
     season_code = season_encoder.transform([season])[0]
 
     # =====================================================
-    # BUILD INPUT DF (MATCH MODEL FEATURES)
+    # BUILD INPUT DATAFRAME (MATCH MODEL FEATURES)
     # =====================================================
     input_df = pd.DataFrame([{
         **user_input,
@@ -105,8 +102,8 @@ def show():
     # PREDICTION
     # =====================================================
     if st.button("Predict AQI"):
-        pred_aqi = reg_model.predict(input_df)[0]
-        st.info(f"🌫 **Predicted AQI:** {pred_aqi:.2f}")
+        predicted_aqi = reg_model.predict(input_df)[0]
+        st.success(f"🌫 **Predicted AQI:** {predicted_aqi:.2f}")
 
     # =====================================================
     # FEATURE IMPORTANCE
