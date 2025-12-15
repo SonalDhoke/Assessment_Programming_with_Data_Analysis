@@ -120,13 +120,13 @@ def show():
     # ----------------------------------------------------------
     st.subheader("5️⃣ Relationship with AQI")
     
-    if "AQI_recalc" not in df.columns:
-        df["AQI_recalc"] = df["AQI"]
+    if "AQI_Recalc" not in df.columns:
+        df["AQI_Recalc"] = df["AQI"]
     
     fig_relation = px.scatter(
         df,
         x=pollutant,
-        y="AQI_recalc",
+        y="AQI_Recalc",
         color="AQI_Bucket",
         title=f"{pollutant} vs AQI"
     )
