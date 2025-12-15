@@ -1,4 +1,6 @@
 import streamlit as st
+import joblib
+import os
 
 # ----------------------------------------------------------
 # PAGE CONFIG
@@ -9,12 +11,26 @@ st.set_page_config(
 )
 
 # ----------------------------------------------------------
+# 🔥 LOAD MODELS & ARTIFACTS ONCE (GLOBAL)
+# ----------------------------------------------------------
+@st.cache_resource
+def load_ml_artifacts():
+    base_path = "models"
+
+    reg_model = joblib.load(os.path.join(base_path, "aqi_lgbm_reg.pkl"))
+    # If you later add classifier, encoders, etc., load here
+
+    return reg_model
+
+# Store in session_state so pages can use it
+if "reg_model" not in st.session_state:
+    st.session_state.reg_model = load_ml_artifacts()
+
+# ----------------------------------------------------------
 # CUSTOM CSS (Pastel theme + Hide Streamlit Auto Pages)
 # ----------------------------------------------------------
 st.markdown("""
 <style>
-
-    /* 🎨 Sidebar Background */
     [data-testid="stSidebar"] {
         background-color: #F4F6FA;
     }
@@ -26,12 +42,10 @@ st.markdown("""
         padding-bottom: 12px;
     }
 
-    /* Hide radio circle icons */
     div[role="radiogroup"] > label > div:first-child {
         display: none !important;
     }
 
-    /* Base tab style */
     div[role="radiogroup"] > label {
         background-color: #ffffff;
         border: 1px solid #E2E6ED;
@@ -48,7 +62,6 @@ st.markdown("""
         gap: 10px;
     }
 
-    /* Active tab */
     div[aria-checked="true"] {
         background-color: #A7C4FF !important;
         border-color: #7CA4FF !important;
@@ -56,48 +69,19 @@ st.markdown("""
         font-weight: 600 !important;
     }
 
-    /* Hover pastel colors */
-    div[role="radiogroup"] > label:nth-child(1):hover {
-        background-color: #FFE8E8 !important;
-        border-color: #FFCCCC !important;
-    }
-    div[role="radiogroup"] > label:nth-child(2):hover {
-        background-color: #FFF4D6 !important;
-        border-color: #FFE4A1 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(3):hover {
-        background-color: #E8FFF3 !important;
-        border-color: #B9F5D0 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(4):hover {
-        background-color: #E9F2FF !important;
-        border-color: #A7C4FF !important;
-    }
-    div[role="radiogroup"] > label:nth-child(5):hover {
-        background-color: #F5E8FF !important;
-        border-color: #D6B6FF !important;
-    }
-    div[role="radiogroup"] > label:nth-child(6):hover {
-        background-color: #FFF0F5 !important;
-        border-color: #FFC4D6 !important;
-    }
-    div[role="radiogroup"] > label:nth-child(7):hover {
-        background-color: #dadfe0 !important;
-        border-color: #b7bdbe !important;
-    }
-
-    /* 🚫 HIDE Streamlit's Auto-Generated MULTIPAGE Sidebar Menu */
     div[data-testid="stSidebarNav"] {
         display: none !important;
     }
-
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------
-# SIDEBAR NAVIGATION — CUSTOM MENU ONLY
+# SIDEBAR NAVIGATION
 # ----------------------------------------------------------
-st.sidebar.markdown("<div class='sidebar-title'>🗺️ Navigation</div>", unsafe_allow_html=True)
+st.sidebar.markdown(
+    "<div class='sidebar-title'>🗺️ Navigation</div>",
+    unsafe_allow_html=True
+)
 
 tabs = [
     "🏠 Overview",
@@ -109,14 +93,11 @@ tabs = [
     "📚 References"
 ]
 
-# Radio-style menu
 page = st.sidebar.radio("", tabs, index=0)
-
-# Clean label (remove emoji)
 page_clean = page.split(" ", 1)[1]
 
 # ----------------------------------------------------------
-# ROUTING — LOAD PAGE CONTENT
+# ROUTING
 # ----------------------------------------------------------
 if page_clean == "Overview":
     import pages.Overview as pg
