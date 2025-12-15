@@ -13,26 +13,25 @@ def show():
 
     st.title("🤖 AQI Prediction using LightGBM")
 
-    # ---------------------------------------------------------
-    # LOAD DATA FROM SESSION
-    # ---------------------------------------------------------
+    # =========================================================
+    # LOAD DATA
+    # =========================================================
     if "cleaned_df" not in st.session_state:
         st.error("Cleaned dataset not found. Complete data cleaning first.")
         return
 
     df = st.session_state.cleaned_df.copy()
 
-    # ---------------------------------------------------------
+    # =========================================================
     # FEATURE ENGINEERING (CACHED)
-    # ---------------------------------------------------------
+    # =========================================================
     @st.cache_data
     def prepare_features(df):
         df = df.copy()
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
         df["Month"] = df["Date"].dt.month
 
-        # Season mapping
         df["Season"] = df["Month"].map({
             12: "Winter", 1: "Winter", 2: "Winter",
             3: "Summer", 4: "Summer", 5: "Summer",
@@ -50,13 +49,14 @@ def show():
 
     df, season_encoder, city_encoder = prepare_features(df)
 
-    # ---------------------------------------------------------
-    # POLLUTANT FEATURES (EXCLUDE AQI & WEEK)
-    # ---------------------------------------------------------
+    # =========================================================
+    # POLLUTANT FEATURES (NO AQI_RECALC, NO WEEK, NO DUPLICATES)
+    # =========================================================
     exclude_cols = [
         "AQI", "AQI_Recalc", "AQI_Bucket", "AQI_Bucket_Recalc",
         "City", "Date", "Season", "Month_Name",
-        "Week", "Week_No", "Week_Number"
+        "Week", "Week_No", "Week_Number",
+        "City_Code", "Season_Code", "Month"
     ]
 
     pollutants = [
@@ -65,15 +65,19 @@ def show():
         and pd.api.types.is_numeric_dtype(df[col])
     ]
 
-    # Remove rows with missing target
+    # Remove rows without target
     df = df.dropna(subset=["AQI_Recalc"])
 
-    # ---------------------------------------------------------
-    # MODEL TRAINING (CACHED)
-    # ---------------------------------------------------------
+    # =========================================================
+    # MODEL TRAINING (CACHED – RUNS ONCE)
+    # =========================================================
     @st.cache_resource
-    def train_lgbm_models(df, features):
-        X = df[features + ["City_Code", "Month", "Season_Code"]]
+    def train_lgbm_models(df, pollutants):
+
+        feature_cols = pollutants + ["City_Code", "Month", "Season_Code"]
+        assert len(feature_cols) == len(set(feature_cols)), "Duplicate features found!"
+
+        X = df[feature_cols]
 
         # ---------------- REGRESSION ----------------
         y_reg = df["AQI_Recalc"]
@@ -97,7 +101,7 @@ def show():
 
         # ---------------- CLASSIFICATION ----------------
         df_clf = df.dropna(subset=["AQI_Bucket_Recalc"])
-        X_clf = df_clf[X.columns]
+        X_clf = df_clf[feature_cols]
         y_clf = df_clf["AQI_Bucket_Recalc"]
 
         Xtr, Xte, ytr, yte = train_test_split(
@@ -115,20 +119,20 @@ def show():
         clf.fit(Xtr, ytr)
         acc = accuracy_score(yte, clf.predict(Xte))
 
-        return reg, clf, r2, acc, X.columns.tolist()
+        return reg, clf, r2, acc, feature_cols
 
-    reg_model, clf_model, reg_r2, clf_acc, feature_order = train_lgbm_models(df, pollutants)
+    reg_model, clf_model, reg_r2, clf_acc, feature_cols = train_lgbm_models(df, pollutants)
 
-    # ---------------------------------------------------------
+    # =========================================================
     # MODEL METRICS
-    # ---------------------------------------------------------
+    # =========================================================
     st.subheader("📊 Model Performance")
     st.success(f"Regression R² Score: **{reg_r2:.3f}**")
     st.success(f"Classification Accuracy: **{clf_acc:.3f}**")
 
-    # ---------------------------------------------------------
+    # =========================================================
     # USER INPUT
-    # ---------------------------------------------------------
+    # =========================================================
     st.subheader("🔮 Predict AQI")
 
     user_input = {}
@@ -157,11 +161,11 @@ def show():
         "Season_Code": season_code
     }])
 
-    input_df = input_df.reindex(columns=feature_order).fillna(0)
+    input_df = input_df.reindex(columns=feature_cols).fillna(0)
 
-    # ---------------------------------------------------------
+    # =========================================================
     # PREDICTION
-    # ---------------------------------------------------------
+    # =========================================================
     if st.button("Predict AQI"):
         pred_aqi = reg_model.predict(input_df)[0]
         pred_bucket = clf_model.predict(input_df)[0]
@@ -169,13 +173,13 @@ def show():
         st.info(f"🌫 **Predicted AQI:** {pred_aqi:.2f}")
         st.info(f"🏷 **AQI Category:** {pred_bucket}")
 
-    # ---------------------------------------------------------
+    # =========================================================
     # FEATURE IMPORTANCE
-    # ---------------------------------------------------------
+    # =========================================================
     st.subheader("🔍 Feature Importance")
 
     importance_df = pd.DataFrame({
-        "Feature": feature_order,
+        "Feature": feature_cols,
         "Importance": reg_model.feature_importances_
     }).sort_values("Importance", ascending=False)
 
