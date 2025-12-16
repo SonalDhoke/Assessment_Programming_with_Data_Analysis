@@ -30,9 +30,9 @@ def show():
     # ==========================================================
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-    if "AQI_recalc" not in df.columns:
+    if "AQI_Recalc" not in df.columns:
         st.warning("⚠ 'AQI_recalc' missing — using 'AQI' instead.")
-        df["AQI_recalc"] = df["AQI"]
+        df["AQI_Recalc"] = df["AQI"]
 
     df["Month"] = df["Date"].dt.month
     df["Month_Name"] = df["Date"].dt.strftime("%B")
