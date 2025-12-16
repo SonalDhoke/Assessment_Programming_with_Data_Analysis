@@ -44,12 +44,12 @@ def show():
     # ==========================================================
     st.markdown("## 🧭 Dashboard Overview")
 
-    avg_aqi = df["AQI_recalc"].mean()
-    severe_days = df[df["AQI_recalc"] > 400].shape[0]
+    avg_aqi = df["AQI_Recalc"].mean()
+    severe_days = df[df["AQI_Recalc"] > 400].shape[0]
 
     HIGH_AQI_THRESHOLD = 200
-    high_df = df[df["AQI_recalc"] > HIGH_AQI_THRESHOLD]
-    city_incidents = high_df.groupby("City")["AQI_recalc"].count().sort_values(ascending=False)
+    high_df = df[df["AQI_Recalc"] > HIGH_AQI_THRESHOLD]
+    city_incidents = high_df.groupby("City")["AQI_Recalc"].count().sort_values(ascending=False)
 
     most_polluted_city = f"{city_incidents.idxmax()} ({city_incidents.max()} incidents)" if not city_incidents.empty else "N/A"
     cleanest_city = f"{city_incidents.idxmin()} ({city_incidents.min()} incidents)" if not city_incidents.empty else "N/A"
@@ -72,9 +72,9 @@ def show():
     month_order = ["January","February","March","April","May","June",
                    "July","August","September","October","November","December"]
 
-    df_month = df.groupby("Month_Name")["AQI_recalc"].mean().reindex(month_order).reset_index()
+    df_month = df.groupby("Month_Name")["AQI_Recalc"].mean().reindex(month_order).reset_index()
 
-    fig_trend = px.line(df_month, x="Month_Name", y="AQI_recalc", markers=True)
+    fig_trend = px.line(df_month, x="Month_Name", y="AQI_Recalc", markers=True)
     fig_trend.update_layout(height=260)
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -118,7 +118,7 @@ def show():
 
     if not city_incidents.empty:
         city_plot = city_incidents.reset_index().rename(
-            columns={"AQI_recalc": "High AQI Incidents"}
+            columns={"AQI_Recalc": "High AQI Incidents"}
         )
 
         fig_city = px.bar(
